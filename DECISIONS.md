@@ -1,0 +1,155 @@
+# Decisions — Shorts Studio
+
+Dated choices for anything that is easy to regret later. Exact crate and npm versions are filled in when that dependency is added, after reading the docs for the installed version. Entries above a pin say "unpinned" on purpose.
+
+Observed on 2026-11-19, not yet depended on: `screencapturekit` 1.5.2 docs show `with_excluding_windows`; `whisper-rs` 0.16.0 on crates.io exposes Metal and token timestamps; `specta` / `tauri-specta` docs still show the 2.0.0-rc line; `ashpd` `CursorMode::METADATA` matches portal cursor mode 4.
+
+---
+
+### 2026-11-19 — TypeScript types from the Rust schema
+
+**Decision.** `ts-rs` derives on the `core` schema. Export runs with the Rust tests into `apps/desktop/src/bindings/`. Those files are committed. `zod` schemas validate project JSON and AI JSON at runtime. A round-trip test fails if the generated types and the serde schema disagree.
+
+**Options.** `ts-rs`. `specta` with `tauri-specta`.
+
+**Why.** The schema lives in `core`, which must compile without Tauri. `ts-rs` is a derive on those structs and writes plain `.ts` files during `cargo test`, so drift shows up in the test gate. `specta` is the stronger fit for generated command clients, and its own docs still describe a 2.0 release candidate with exact version pins. Command wrappers stay small and handwritten until a stable `tauri-specta` is worth a migration.
+
+**Library and version.** `ts-rs`, unpinned. Pin in M01.
+
+**Links.** <https://github.com/Aleph-Alpha/ts-rs> · <https://specta.dev/docs/tauri-specta> · <https://docs.rs/specta/latest/specta/>
+
+---
+
+### 2026-11-19 — Styling
+
+**Decision.** CSS modules. Design tokens from the prompt are CSS variables on `:root`. Space Grotesk and JetBrains Mono are vendored (OFL). No font CDN.
+
+**Options.** CSS modules. Tailwind.
+
+**Why.** The UI is a fixed token set and seven screens. Component CSS sits next to the component, and the visual snapshots in M02 diff real rules. Accent switching writes `--accent`.
+
+**Library and version.** None beyond Vite's CSS modules. Font files added in M02; record the font file version there.
+
+---
+
+### 2026-11-19 — SQLite
+
+**Decision.** `rusqlite` with the `bundled` feature. SQL migrations are versioned files in `crates/store`.
+
+**Options.** `rusqlite`. `sqlx` with SQLite.
+
+**Why.** The database is a local library: projects, topic queue, usage, uploads, originality hashes. Calls are short and can run on a blocking thread inside Tauri commands. Bundled SQLite means Omarchy and the Mini share one SQLite build.
+
+**Library and version.** `rusqlite`, unpinned. Pin in M01.
+
+**Links.** <https://docs.rs/rusqlite>
+
+---
+
+### 2026-11-19 — Linux screen capture
+
+**Decision.** `ashpd` for the ScreenCast portal, then the `pipewire` crate to read frames. Request `CursorMode::METADATA` when `AvailableCursorModes` includes it, else `HIDDEN`. App-sampled `cursor.jsonl` at about 120 Hz is the editor's cursor source either way.
+
+**Options.** `pipewire` crate. GStreamer `pipewiresrc`.
+
+**Why.** Decode, composite, and encode already go through ffmpeg and Skia. A second media graph is extra surface area. `ashpd`'s docs show a PipeWire example and a GStreamer example; PipeWire is the first path. If DMA-BUF negotiation cannot produce frames ffmpeg can write, M06 switches to `pipewiresrc` and adds an entry here.
+
+**Library and version.** `ashpd`, `pipewire`, unpinned. Pin in M06 after reading the installed docs.
+
+**Links.** <https://docs.rs/ashpd/latest/ashpd/desktop/screencast/index.html> · <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.ScreenCast.html>
+
+---
+
+### 2026-11-19 — macOS screen capture
+
+**Decision.** The `screencapturekit` crate. Exclude the prompter with `SCContentFilter::create().with_display(...).with_excluding_windows(...)`. Match the Tauri window to `SCWindow` by owner pid and title. Also set the window sharing type to none. A Swift sidecar is only built if the crate cannot address that window.
+
+**Options.** `screencapturekit`. A Swift helper from day one.
+
+**Why.** Current crate docs already expose excluding windows by `SCWindow`. One language in-process is the smaller path. The magenta test is the proof, not the sharing-type flag.
+
+**Library and version.** `screencapturekit`, unpinned. Latest docs observed: 1.5.2. Pin in M05. This crate is macOS-only and is not compiled on Omarchy.
+
+**Links.** <https://docs.rs/screencapturekit/latest/screencapturekit/stream/content_filter/struct.SCContentFilterBuilder.html>
+
+---
+
+### 2026-11-19 — Motion library shared by Rust and TypeScript
+
+**Decision.** Implement cubic-bezier, critically damped spring, and 60 fps sampling in `crates/core`. Port the same functions to `packages/motion`. Check in `tests/vectors/motion.json`. Both test suites load it and must agree sample for sample.
+
+**Options.** One Rust library compiled to WASM for the UI. Two ports locked by vectors.
+
+**Why.** Export determinism is a Rust property: the renderer samples `core`. The preview needs the same samples without a WASM toolchain in M00. The vector file is the contract. A WASM build of `core` can replace the port later if the two diverge.
+
+**Library and version.** No third-party easing crate.
+
+---
+
+### 2026-11-19 — OpenAI wire API
+
+**Decision.** Deferred to the start of M03. Read the current OpenAI docs, then pick the streaming endpoint that accepts a JSON schema. Preference: Responses API. Fallback: Chat Completions. Model ids are never constants in source; defaults live in config, and the settings screen lists whatever the models endpoint returns.
+
+**Options.** Responses API. Chat Completions.
+
+**Why.** The prompt says to check current docs at implementation time. Choosing the URL now would skip that check.
+
+**Library and version.** `reqwest`, unpinned. Pin in M03.
+
+---
+
+### 2026-11-19 — Preview compositor
+
+**Decision.** Scene JSON is the shared description. Preview plays HTML video and draws overlays with CanvasKit at preview resolution. Export draws the same scene with `skia-safe`. If CanvasKit init cost or preview frame rate is unacceptable, stop using it, keep the scene JSON, and write the visual difference here. The SSIM ≥ 0.95 preview-vs-export test still applies to a preview-resolution Rust render.
+
+**Options.** CanvasKit in the webview. Rust-only render for both, with the webview showing a video of that render.
+
+**Why.** The prompt asks for CanvasKit first so overlays match Skia. The scene JSON keeps that promise even if the wasm path is dropped.
+
+**Library and version.** `skia-safe`, unpinned, pin in M11. CanvasKit build pin in M09 or M11, whichever lands the preview first.
+
+---
+
+### 2026-11-19 — Whisper default
+
+**Decision.** Model file is a setting. Initial default: `ggml-large-v3-turbo` (multilingual), downloaded once into the app data directory. Enable token timestamps. Use `set_split_on_word` only if the installed `whisper-rs` docs still mark it as the word-timestamp path; otherwise derive words from token times. Metal feature on macOS. On Linux, pick Vulkan if the installed crate builds it here, else CPU, and record which.
+
+**Options.** `large-v3-turbo`. `medium`. `small`.
+
+**Why.** Daily scripts are Hindi/English code-switching, so an `.en` model is ineligible. Turbo is the quality/speed default that still fits a 24 GB Mini. A smaller file stays one settings change away.
+
+**Library and version.** `whisper-rs` 0.16.0 observed on crates.io (updated 2026-03-12). Pin the exact version in M07, including the `metal` feature on macOS.
+
+**Links.** <https://docs.rs/whisper-rs/latest/whisper_rs/> · <https://crates.io/crates/whisper-rs>
+
+---
+
+### 2026-11-19 — Defaults that are settings
+
+**Decision.** Monthly spend cap USD 20, alert at 80%. Hinglish duration estimate 140 words per minute. YouTube Data API upload hidden behind a toggle, default off. Project directories `~/Movies/ShortsStudio/<NNN-slug>/` with `NNN` zero-padded to 3. Package and binary name `shorts-studio`. This repo directory is unchanged.
+
+**Why.** Each value is reversible from Settings or from config. They need a default so M03, M04, and M14 have a fixture.
+
+---
+
+### 2026-11-19 — Background removal
+
+**Decision.** M09 starts from a simple portrait-segmentation model only if it can land inside that module. If the model download, runtime, or quality slips, ship shapes with no background removal and record the reason here.
+
+**Why.** Camera shape, safe zone, and captions are the daily path. A matting model is optional in the prompt.
+
+---
+
+### 2026-11-19 — Git hooks
+
+**Decision.** `scripts/hooks/pre-commit` runs lint and fast unit tests. `just setup` copies it to `.git/hooks/pre-commit`.
+
+**Why.** The hook has to exist without changing git config.
+
+---
+
+### 2026-11-19 — Where Mac-only proof runs
+
+**Decision.** Develop and run the automatic gate on Omarchy. macOS ScreenCaptureKit, VideoToolbox, permission probes, and the magenta capture are compiled with `cfg(target_os = "macos")` and marked MANUAL in `progress.md` until they run on the Mini.
+
+**Why.** This checkout is the secondary machine. The prompt's primary proof stays on the M4, and Linux still has to record, edit, and export.
