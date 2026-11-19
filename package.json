@@ -1,0 +1,8 @@
+{
+  "name": "shorts-studio-workspace",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {
+    "test:all": "just test"
+  }
+}

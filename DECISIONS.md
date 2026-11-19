@@ -148,6 +148,49 @@ Observed on 2026-11-19, not yet depended on: `screencapturekit` 1.5.2 docs show 
 
 ---
 
+### 2026-11-19 — M00 toolchain pins
+
+**Decision.** Pin the scaffold to the versions installed and compiled on Omarchy. `create-tauri-app` 4.7.5 generated the React template; the workspace layout replaces that single package.
+
+**Versions.**
+
+| Tool | Version |
+|---|---|
+| Rust | 1.99.1 (edition 2024, `rust-toolchain.toml`) |
+| just | 1.59.0 |
+| pnpm | 12.21.0 |
+| Tauri | 2.12.7 |
+| tauri-build | 2.7.6 |
+| tauri-plugin-opener | 2.7.3 |
+| @tauri-apps/api, @tauri-apps/cli | 2.12.5 |
+| serde | 1.0.229 |
+| React, React DOM | 19.3.1 |
+| Vite | 8.3.8 |
+| @vitejs/plugin-react | 6.3.0 |
+| TypeScript | 6.0.3 |
+| Vitest | 5.1.1 |
+| Playwright | 1.65.1 |
+| ESLint | 10.15.0 |
+| typescript-eslint | 8.73.0 |
+| Prettier | 3.10.1 |
+| FFmpeg on this machine | n9.0.2 |
+
+**Links.** <https://v2.tauri.app/start/frontend/vite/> · <https://v2.tauri.app/develop/tests/mocking/> · <https://docs.rs/tauri/2.12.7>
+
+---
+
+### 2026-11-19 — Public Tauri commands live in a submodule
+
+**Decision.** `#[tauri::command]` functions in `crates/app` are `pub` items inside `commands`, re-exported from the crate root. `generate_handler![app::health]` stays in `apps/desktop/src-tauri`.
+
+**Options.** Public command in `lib.rs`. Private command only inside the Tauri crate.
+
+**Why.** tauri-macros 2.7.6 emits `#[macro_export]` plus `pub use` of `__cmd__<name>` for a public command. On Rust 1.99 that pair is defined twice when the function sits in the crate root (`E0255`). A submodule keeps the export, which is what another crate's `generate_handler!` calls.
+
+**Library and version.** tauri-macros 2.7.6, pulled by Tauri 2.12.7.
+
+---
+
 ### 2026-11-19 — Where Mac-only proof runs
 
 **Decision.** Develop and run the automatic gate on Omarchy. macOS ScreenCaptureKit, VideoToolbox, permission probes, and the magenta capture are compiled with `cfg(target_os = "macos")` and marked MANUAL in `progress.md` until they run on the Mini.

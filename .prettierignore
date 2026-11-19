@@ -1,0 +1,10 @@
+node_modules
+dist
+target
+tests/fixtures
+pnpm-lock.yaml
+Cargo.lock
+apps/desktop/src-tauri/icons
+apps/desktop/src-tauri/gen
+**/playwright-report
+**/test-results

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-ssr/
+target/
+*.local
+.DS_Store
+.idea/
+
+apps/desktop/src-tauri/gen/schemas/
+
+tests/fixtures/
+playwright-report/
+test-results/
+blob-report/
+
+*.log
+pnpm-debug.log*
