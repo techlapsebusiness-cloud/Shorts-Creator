@@ -11,6 +11,11 @@ import {
   wordCount,
 } from "../script/estimate";
 import { publishPrompter, type PrompterLine } from "../prompter/bridge";
+import {
+  AUDIO_BITRATE_KBPS,
+  VIDEO_BITRATE_KBPS,
+  estimateMegabytes,
+} from "../record/estimate";
 import styles from "./screens.module.css";
 
 const CHIPS = [
@@ -166,6 +171,12 @@ export function RecordScreen({
   const [textSize, setTextSize] = useState("48");
   const [opacity, setOpacity] = useState("100%");
   const [paused, setPaused] = useState(false);
+  const [display, setDisplay] = useState("Fixture display");
+  const [camera, setCamera] = useState("Fixture camera");
+  const [microphone, setMicrophone] = useState("Fixture microphone");
+  const [highlightClicks, setHighlightClicks] = useState(true);
+  const [showKeys, setShowKeys] = useState(false);
+  const disk = estimateMegabytes(30, VIDEO_BITRATE_KBPS, AUDIO_BITRATE_KBPS, 2);
 
   const pace = leadingNumber(speed, wordsPerMinute);
   const size = leadingNumber(textSize, 48);
@@ -380,6 +391,45 @@ export function RecordScreen({
             {captureNote}
           </p>
         ) : null}
+        <SelectField
+          label="Display"
+          value={display}
+          options={["Fixture display"]}
+          onChange={setDisplay}
+        />
+        <SelectField
+          label="Camera"
+          value={camera}
+          options={["Fixture camera"]}
+          onChange={setCamera}
+        />
+        <SelectField
+          label="Microphone"
+          value={microphone}
+          options={["Fixture microphone"]}
+          onChange={setMicrophone}
+        />
+        <div
+          className={styles.meter}
+          role="meter"
+          aria-label="Mic level"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={0}
+        >
+          <span style={{ width: "0%" }} />
+        </div>
+        <p className={styles.meta}>{`30 s · ${disk.toFixed(1)} MB`}</p>
+        <Toggle
+          label="Highlight clicks"
+          checked={highlightClicks}
+          onChange={setHighlightClicks}
+        />
+        <Toggle
+          label="Show keystrokes"
+          checked={showKeys}
+          onChange={setShowKeys}
+        />
       </div>
       <Card title="Prompter">
         <div className={styles.row}>

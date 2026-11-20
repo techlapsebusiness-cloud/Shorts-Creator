@@ -4,6 +4,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             app::health,
+            app::capture_devices,
             app::test_provider,
             app::spend_status,
             app::set_spend_cap,

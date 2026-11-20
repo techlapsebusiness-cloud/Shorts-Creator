@@ -295,3 +295,19 @@ Voice follow flushes a mic chunk at 3 seconds, or at 2 seconds when the speaker 
 Linux recording is allowed when the prompter is on a different monitor, or when the capture is a window or region on the same monitor whose rectangle does not overlap the prompter. A shared edge is clear. A monitor capture of the prompter's display is refused, and the reason is shown on the record screen. The 3 second magenta recording is MANUAL. The gate checks a pixel buffer for a magenta block of at least 64 pixels and records the platform skip.
 
 **Links.** <https://docs.rs/screencapturekit/1.5.3/screencapturekit/stream/content_filter/struct.SCContentFilter.html> · <https://docs.rs/tauri/2.12.7/tauri/webview/struct.WebviewWindowBuilder.html>
+
+---
+
+### 2026-11-20 — Fixture take and the shared clock
+
+**Decision.** M06 proves the take with FFmpeg lavfi child processes. `ashpd`, PipeWire, and `screencapturekit` stay unpinned and uncompiled. Portal capture and ScreenCaptureKit stay MANUAL, on Omarchy and on the Mini. The fixture catalog is one display, one camera, and one microphone. Real device enumeration is MANUAL.
+
+The encoder preference is `h264_videotoolbox`, then `h264_vaapi`, then `h264_nvenc`, then `libx264`. The fixture forces `libx264` so the gate does not depend on a hardware encoder. Product bitrate stays 40 000 kbps video and 384 kbps audio. A 30 second estimate with two video tracks is 301 440 000 bytes, shown as 301.4 MB.
+
+One `Instant` is stamped before the three writers start. Each writer stores its start elapsed as `screen_offset_ms`, `cam_offset_ms`, and `mic_offset_ms`, which map onto `TakeSync`. ffprobe durations of `screen.mov`, `cam.mov`, and `mic.wav` must agree within 50 ms. The cursor log is sampled at 120 Hz and must be strictly increasing. Clicks and keystrokes are fields on that log. They are not burned into the video. When a portal advertises metadata cursor mode, that mode is chosen; the app still writes `cursor.jsonl`. Otherwise the cursor mode is hidden.
+
+Pause and resume are session-clock math. Recorded time stays 0 until the 3 second countdown ends, then subtracts paused time. The fixture does not sleep for the countdown and does not stop FFmpeg. Desktop icons stay shown on this machine. macOS hide-icons is best effort and MANUAL on the Mini.
+
+Start recording still refuses a same-monitor capture. The record screen does not launch FFmpeg.
+
+**Why.** Three processes start a few milliseconds apart. Storing the offsets keeps that skew, and the 50 ms rule checks the media, not the process start. A clap detector can re-sync a real take later. The lavfi path is the gate that runs here.

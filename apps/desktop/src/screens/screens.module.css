@@ -67,6 +67,19 @@
   grid-column: 1 / -1;
 }
 
+.meter {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--line);
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--mint);
+}
+
 .line {
   grid-column: 1 / -1;
   width: 100%;

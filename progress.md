@@ -1,6 +1,6 @@
 # Progress — Shorts Studio
 
-Last updated: 2026-11-20 21:09 +0530 · Current module: M05 · Branch: m05-prompter
+Last updated: 2026-11-20 21:23 +0530 · Current module: M06 · Branch: m06-recording
 
 | Module | Status | Tests (pass/total) | Last full gate | Notes |
 |---|---|---|---|---|
@@ -10,7 +10,7 @@ Last updated: 2026-11-20 21:09 +0530 · Current module: M05 · Branch: m05-promp
 | M03 AI providers | ✅ Done | 75/75 | 2026-11-20 20:40 | Claude and OpenAI behind one trait; live calls return immediately unless LIVE_AI=1 |
 | M04 Script generator | ✅ Done | 87/87 | 2026-11-20 20:52 | versioned prompts, editable beats, raw draft kept |
 | M05 Prompter | ✅ Done | 105/105 | 2026-11-20 21:09 | separate window; magenta capture MANUAL |
-| M06 Recording | ⬜ Not started | — | — | |
+| M06 Recording | ✅ Done | 111/111 | 2026-11-20 21:23 | lavfi take; real devices MANUAL |
 | M07 Transcription | ⬜ Not started | — | — | |
 | M08 Timeline | ⬜ Not started | — | — | |
 | M09 Layout, cam, captions | ⬜ Not started | — | — | |
@@ -130,7 +130,25 @@ The prompter keeps the fixed-speed clock until a transcript chunk arrives. `whis
 
 **Manual checks for Akshay:** on Omarchy, open the prompter, confirm the text ignores clicks and the controls still receive them, and read the refusal when Start recording uses a monitor capture. On the Mini, record 3 seconds with the magenta pattern and confirm it is absent. The M00 doctor, native `just dev`, M03 key paste, and M04 live script checks are still open.
 
-**Next step:** wait for "continue", then branch `m06-recording`.
+**Next step:** completed. M06 is below.
+
+## M06 — Recording engine
+
+- [x] Fixture device pickers for display, camera, and microphone, plus a mic peak meter
+- [x] `screen.mov`, `cam.mov`, `mic.wav` at 48 kHz, and `cursor.jsonl` from one start instant
+- [x] Session clock: 3 s countdown, pause and resume
+- [x] Disk estimate for 30 s at 40 000 kbps × 2 plus 384 kbps audio
+- [x] Highlight clicks and show keystrokes stay in the cursor log
+- [x] Hardware encoder preference, with the fixture forced to libx264
+- [x] Desktop icons stay shown here; macOS hide is best effort and MANUAL
+
+**Tests:** `just test` at 2026-11-20 21:23. Lint clean. Rust 76 passed (ai 26, app 10, core 19, media 15, store 6). Vitest 26 passed. Playwright 9 passed. Fixture probe ok. `just test-module M06` passed. The lavfi take's three durations agree within 50 ms, and the cursor log is strictly increasing. Nothing skipped inside the gate.
+
+**Failing / blocked:** none.
+
+**Manual checks for Akshay:** one real take on the Mini and one on Omarchy. Confirm sync by eye and by the stored offsets. Portal capture, ScreenCaptureKit, and the live mic meter on a real device stay MANUAL. Hiding desktop icons is a macOS best-effort check on the Mini. The M00 doctor, native `just dev`, M03 key paste, M04 live script, and M05 magenta checks are still open.
+
+**Next step:** wait for "continue", then branch `m07-transcription`.
 
 ## Session log
 
@@ -161,3 +179,7 @@ Read the prompt. Checked current docs for `screencapturekit` window exclusion, `
 ### 2026-11-20 21:09 +0530
 
 "continue" started M05 on `m05-prompter`. The prompter is its own always-on-top window. Scroll follows elapsed time after a 3 second countdown, and a Hinglish transcript can move it to the spoken line. A monitor capture that includes the prompter is refused. The magenta recording stays MANUAL. Full gate passed on Omarchy.
+
+### 2026-11-20 21:23 +0530
+
+"push code and continue" started M06 on `m06-recording`. A fixture take writes `screen.mov`, `cam.mov`, `mic.wav`, and `cursor.jsonl` from one clock. The record screen names the fixture devices, shows the mic meter at rest, and estimates 301.4 MB for 30 seconds. Real cameras, the portal, and ScreenCaptureKit stay MANUAL. Full gate passed on Omarchy.

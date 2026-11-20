@@ -19,6 +19,11 @@ pub struct SpendStatus {
 }
 
 #[tauri::command]
+pub fn capture_devices() -> media::DeviceCatalog {
+    media::fixture_devices()
+}
+
+#[tauri::command]
 pub fn health() -> Health {
     Health {
         name: "shorts-studio".to_string(),
@@ -270,5 +275,12 @@ mod tests {
         })
         .unwrap_err();
         assert!(error.contains("another monitor"));
+    }
+
+    #[test]
+    fn capture_devices_names_the_fixture_sources() {
+        let devices = super::capture_devices();
+        assert_eq!(devices.displays[0].label, "Fixture display");
+        assert_eq!(devices.microphones[0].id, "mic-0");
     }
 }

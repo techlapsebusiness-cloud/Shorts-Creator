@@ -24,6 +24,15 @@ describe("RecordScreen", () => {
     expect(
       screen.getByText("27 words · 11.6 s at 140 wpm"),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Display")).toHaveValue("Fixture display");
+    expect(screen.getByLabelText("Microphone")).toHaveValue(
+      "Fixture microphone",
+    );
+    expect(screen.getByRole("meter", { name: "Mic level" })).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
+    expect(screen.getByText("30 s · 301.4 MB")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Generate" }));
     expect(screen.getByRole("status")).toHaveTextContent(
       "Pick a model in Settings.",
