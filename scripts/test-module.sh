@@ -21,6 +21,10 @@ case "$module" in
     pnpm --dir apps/desktop test
     pnpm --dir tests/e2e test
     ;;
+  M03)
+    cargo test -p ai -p app
+    pnpm --dir apps/desktop exec vitest run src/screens/SettingsScreen.test.tsx
+    ;;
   *)
     echo "unknown module: ${module:-<missing>}" >&2
     echo "usage: just test-module M00" >&2

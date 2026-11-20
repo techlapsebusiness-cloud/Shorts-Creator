@@ -7,6 +7,24 @@ export async function mockTauri(page: Page) {
         if (cmd === "health") {
           return Promise.resolve({ name: "shorts-studio", version: "0.1.0" });
         }
+        if (cmd === "spend_status") {
+          return Promise.resolve({
+            spentUsd: 0,
+            capUsd: 20,
+            decision: "allow",
+          });
+        }
+        if (cmd === "test_provider") {
+          return Promise.resolve({
+            ok: true,
+            message: "Key works",
+            models: [],
+            defaultModel: "",
+          });
+        }
+        if (cmd === "set_spend_cap") {
+          return Promise.resolve(null);
+        }
         return Promise.reject(new Error(`unmocked command ${cmd}`));
       },
       metadata: {

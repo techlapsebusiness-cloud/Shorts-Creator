@@ -10,9 +10,14 @@ vi.mock("@tauri-apps/api/core", () => ({
 describe("App", () => {
   beforeEach(() => {
     window.history.pushState(null, "", "/");
-    vi.mocked(invoke).mockResolvedValue({
-      name: "shorts-studio",
-      version: "0.1.0",
+    vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+      if (cmd === "health") {
+        return { name: "shorts-studio", version: "0.1.0" };
+      }
+      if (cmd === "spend_status") {
+        return { spentUsd: 0, capUsd: 20, decision: "allow" };
+      }
+      throw new Error(cmd);
     });
   });
 

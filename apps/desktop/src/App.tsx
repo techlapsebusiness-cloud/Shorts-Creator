@@ -6,12 +6,28 @@ import { AudioScreen } from "./screens/AudioScreen";
 import { EditScreen } from "./screens/EditScreen";
 import { ExportScreen } from "./screens/ExportScreen";
 import { RecordScreen } from "./screens/RecordScreen";
-import { SettingsScreen } from "./screens/SettingsScreen";
+import {
+  SettingsScreen,
+  type ProviderTestResult,
+  type SpendView,
+} from "./screens/SettingsScreen";
 import { UploadScreen } from "./screens/UploadScreen";
 import { applyAccent, type AccentId } from "./shell/accents";
 import { routeFromPath, type Route } from "./shell/routes";
 import { TopBar } from "./shell/TopBar";
 import styles from "./App.module.css";
+
+function testProvider(provider: string, key: string) {
+  return invoke<ProviderTestResult>("test_provider", { provider, key });
+}
+
+function loadSpend() {
+  return invoke<SpendView>("spend_status");
+}
+
+function saveCap(capUsd: number) {
+  return invoke("set_spend_cap", { capUsd });
+}
 
 export default function App() {
   const [health, setHealth] = useState("booting");
@@ -68,7 +84,13 @@ export default function App() {
         {route.id === "export" ? <ExportScreen /> : null}
         {route.id === "upload" ? <UploadScreen /> : null}
         {route.id === "settings" ? (
-          <SettingsScreen accent={accent} onAccent={changeAccent} />
+          <SettingsScreen
+            accent={accent}
+            onAccent={changeAccent}
+            onTest={testProvider}
+            onSpend={loadSpend}
+            onCap={saveCap}
+          />
         ) : null}
       </main>
     </div>

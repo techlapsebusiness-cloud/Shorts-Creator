@@ -4,16 +4,27 @@ type FieldProps = {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
+  secret?: boolean;
 };
 
-export function Field({ label, value, onChange }: FieldProps) {
+export function Field({
+  label,
+  value,
+  onChange,
+  onBlur,
+  secret = false,
+}: FieldProps) {
   return (
     <label className={styles.field}>
       <span className={styles.label}>{label}</span>
       <input
         className={styles.control}
+        type={secret ? "password" : "text"}
+        autoComplete={secret ? "off" : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
       />
     </label>
   );

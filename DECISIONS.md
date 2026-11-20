@@ -94,7 +94,7 @@ Observed on 2026-11-19, not yet depended on: `screencapturekit` 1.5.2 docs show 
 
 **Why.** The prompt says to check current docs at implementation time. Choosing the URL now would skip that check.
 
-**Library and version.** `reqwest`, unpinned. Pin in M03.
+**Library and version.** Pinned in the 2026-11-20 M03 entry below.
 
 ---
 
@@ -239,3 +239,31 @@ SQLite schema lives in `crates/store/migrations/001_library.sql`. Opening the li
 | @axe-core/playwright | 4.14.0 |
 
 **Links.** <https://github.com/floriankarsten/space-grotesk> · <https://github.com/JetBrains/JetBrainsMono> · <https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright>
+
+---
+
+### 2026-11-20 — AI providers
+
+**Decision.** Both providers implement `LlmProvider`. Claude calls the Anthropic Messages API, `POST /v1/messages`, with header `anthropic-version: 2026-10-21` and `stream: true`. ChatGPT calls the OpenAI Responses API, `POST /v1/responses`, with `stream: true`. A machine-readable call sends OpenAI `text.format` as `{ type: "json_schema", strict: true, name, schema }`. Claude receives the schema as a system instruction. Both replies are parsed as JSON. One failure retries once, with the serde error included in the next user message. A second failure returns the error.
+
+The clients parse the SSE stream into ordered text deltas on `Completion`. The settings Test button calls `GET /v1/models` and fills the select from `data[].id`. It does not send a completion. Token-by-token rendering waits for the script screen.
+
+Model ids are not constants in source. `config/ai.toml` holds the routing table, the USD 20 cap, the 0.8 alert ratio, empty default model strings, and token rates. Rates are USD per million tokens and ship at zero, so the repo does not invent a price. `cost_usd` reads that table. The cap tests pass an explicit cost into the meter, which proves allow, alert, and block while the shipped rates stay zero. Spend at the cap blocks before the provider is called. Spend at 80 percent alerts and still calls.
+
+Keys go to the OS keychain through `keyring` 4.2.0. The service is `shorts-studio`. The accounts are the provider ids `claude` and `openai`. Tests use an in-memory store and do not open the Secret Service. Log lines and Test results pass through `redact`, which removes the saved secret and tokens shaped like `sk-` or `sk-ant-`.
+
+Live tests compile and return immediately unless `LIVE_AI=1`. Listing models also needs `LIVE_AI_ANTHROPIC_KEY` and `LIVE_AI_OPENAI_KEY`. A streamed completion also needs `LIVE_AI_ANTHROPIC_MODEL` and `LIVE_AI_OPENAI_MODEL`. That early return is the M03 skip specified by the prompt.
+
+**Options.** OpenAI Responses API. OpenAI Chat Completions. `reqwest` with rustls. `reqwest` with native-tls.
+
+**Why.** The current Responses guide still accepts `text.format.type = json_schema` with `strict: true`. rustls avoids an OpenSSL header dependency. reqwest 0.13 names that feature `rustls` (the 0.12 name was `rustls-tls`) and pulls aws-lc-rs.
+
+**Versions.**
+
+| Crate | Version |
+|---|---|
+| reqwest | 0.13.5 (`blocking`, `json`, `rustls`; default features off) |
+| keyring | 4.2.0 (default `v1`: Secret Service on Linux, Keychain on macOS, Credential Manager on Windows) |
+| toml | 1.2.1 |
+
+**Links.** <https://developers.openai.com/api/docs/guides/streaming-responses> · <https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses> · <https://platform.claude.com/docs/en/build-with-claude/streaming> · <https://docs.rs/keyring/4.2.0/keyring/>

@@ -1,13 +1,13 @@
 # Progress — Shorts Studio
 
-Last updated: 2026-11-20 20:14 +0530 · Current module: M02 · Branch: m02-ui-shell
+Last updated: 2026-11-20 20:40 +0530 · Current module: M03 · Branch: m03-ai-providers
 
 | Module | Status | Tests (pass/total) | Last full gate | Notes |
 |---|---|---|---|---|
 | M00 Scaffold | ✅ Done | 14/14 | 2026-11-19 22:16 | doctor passed on Omarchy; Mac permissions MANUAL |
 | M01 Project model | ✅ Done | 29/29 | 2026-11-20 19:54 | schema v1, SQLite library, crash-safe autosave |
 | M02 UI shell | ✅ Done | 48/48 | 2026-11-20 20:14 | seven screens, snapshots at 1440×900, axe clean |
-| M03 AI providers | ⬜ Not started | — | — | |
+| M03 AI providers | ✅ Done | 75/75 | 2026-11-20 20:40 | Claude and OpenAI behind one trait; live calls return immediately unless LIVE_AI=1 |
 | M04 Script generator | ⬜ Not started | — | — | |
 | M05 Prompter | ⬜ Not started | — | — | |
 | M06 Recording | ⬜ Not started | — | — | |
@@ -73,7 +73,25 @@ Last updated: 2026-11-20 20:14 +0530 · Current module: M02 · Branch: m02-ui-sh
 
 **Manual checks for Akshay:** glance at the shell on the Mini once a build exists there. Linux snapshots are the gate. The M00 doctor and native `just dev` checks are still open.
 
-**Next step:** wait for "continue", then branch `m03-ai-providers`.
+**Next step:** completed. M03 is below.
+
+## M03 — AI providers
+
+- [x] `LlmProvider` for Claude (Anthropic Messages, streaming) and OpenAI (Responses, streaming)
+- [x] Model lists come from each provider's models endpoint. No model id constants in source
+- [x] Keys go to the OS keychain. Tests use an in-memory store
+- [x] JSON validation retries once with the parser error, then fails
+- [x] Log redaction strips the saved secret and `sk-` / `sk-ant-` tokens
+- [x] Monthly cap USD 20, alert at 80 percent, block at 100 percent, recorded in SQLite
+- [x] Routing table in `config/ai.toml`. Settings Test button and spend line
+
+**Tests:** `just test` at 2026-11-20 20:40. Lint clean. Rust 49 passed (ai 22, app 6, core 11, media 5, store 5). Vitest 18 passed. Playwright 8 passed. axe reported no serious or critical violations. Settings snapshot updated. Fixture probe ok. `just test-module M03` passed. Two live tests compile and return immediately unless `LIVE_AI=1`. That return is the skip the prompt specifies. The gate does not call the network.
+
+**Failing / blocked:** none.
+
+**Manual checks for Akshay:** paste a real key, press Test, and confirm the key is absent from `project.json` and from logs. That check is not required for this done mark. The M00 doctor and native `just dev` checks are still open.
+
+**Next step:** wait for "continue", then branch `m04-script-generator`.
 
 ## Session log
 
@@ -92,3 +110,7 @@ Read the prompt. Checked current docs for `screencapturekit` window exclusion, `
 ### 2026-11-20 20:14 +0530
 
 "continue" started M02 on `m02-ui-shell`. The seven screens are static on the slide theme, with Space Grotesk and JetBrains Mono committed under `apps/desktop/src/fonts/`. Playwright visits every screen at 1440×900, axe is clean, and the accent switch writes `--accent`. Full gate passed on Omarchy.
+
+### 2026-11-20 20:40 +0530
+
+"continue" started M03 on `m03-ai-providers`. Claude streams the Messages API and OpenAI streams the Responses API, both behind `LlmProvider`, with a mock that replays fixtures. Keys stay in the keychain, spend is capped at USD 20, and the settings screen lists models only after Test. Full gate passed on Omarchy.

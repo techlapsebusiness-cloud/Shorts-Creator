@@ -2,7 +2,12 @@
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![app::health])
+        .invoke_handler(tauri::generate_handler![
+            app::health,
+            app::test_provider,
+            app::spend_status,
+            app::set_spend_cap
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

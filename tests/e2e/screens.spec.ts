@@ -25,6 +25,11 @@ test.describe("shell screens", () => {
       await expect(
         page.getByRole("heading", { name: screen.name, exact: true }),
       ).toBeVisible();
+      if (screen.shot === "settings") {
+        await expect(page.getByTestId("spend")).toHaveText(
+          "Spent 0.00 of 20.00 USD.",
+        );
+      }
       const results = await new AxeBuilder({ page }).analyze();
       const blocked = results.violations.filter(
         (violation) =>

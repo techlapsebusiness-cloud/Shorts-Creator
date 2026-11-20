@@ -1,0 +1,8 @@
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","delta":"{\"ok\":"}
+
+event: response.output_text.delta
+data: {"type":"response.output_text.delta","delta":"true}"}
+
+event: response.completed
+data: {"type":"response.completed","response":{"usage":{"input_tokens":9,"output_tokens":4}}}

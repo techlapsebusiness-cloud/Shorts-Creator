@@ -1,0 +1,23 @@
+# Defaults for the AI providers. Model ids stay empty until they are
+# filled in here. The settings screen lists whatever each models endpoint returns.
+
+cap_usd = 20.0
+alert_ratio = 0.8
+
+[routing]
+script = "claude"
+upload_kit = "claude"
+cover_text = "openai"
+fact_check = "claude"
+
+[defaults]
+claude = ""
+openai = ""
+
+# USD per million tokens. Zero until current prices are filled in.
+# Keys are provider ids.
+[rates]
+claude_input = 0.0
+claude_output = 0.0
+openai_input = 0.0
+openai_output = 0.0
