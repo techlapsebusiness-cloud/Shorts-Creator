@@ -18,6 +18,27 @@ pub struct SpendStatus {
     pub decision: String,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TakeStarted {
+    pub directory: String,
+}
+
+#[tauri::command]
+pub fn start_take() -> Result<TakeStarted, String> {
+    let root = store::default_movies_root().map_err(|error| error.to_string())?;
+    let dir = root.join("takes").join(stamp());
+    media::begin_live_take(&dir)?;
+    Ok(TakeStarted {
+        directory: dir.display().to_string(),
+    })
+}
+
+#[tauri::command]
+pub fn stop_take() -> Result<String, String> {
+    media::end_live_take()
+}
+
 #[tauri::command]
 pub fn capture_devices() -> media::DeviceCatalog {
     media::fixture_devices()

@@ -14,8 +14,11 @@
       {
         "label": "main",
         "title": "Shorts Studio",
-        "width": 1440,
-        "height": 900
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 640,
+        "center": true
       },
       {
         "label": "prompter",

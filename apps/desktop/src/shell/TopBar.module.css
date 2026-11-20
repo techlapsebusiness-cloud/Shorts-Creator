@@ -19,22 +19,36 @@
 
 .identity {
   margin: 0;
+  min-width: 0;
+  overflow: hidden;
   color: var(--text-mid);
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .project {
+  min-width: 0;
+  overflow: hidden;
   color: var(--text);
   font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action {
+  flex-shrink: 0;
 }
 
 .steps {
   display: flex;
+  flex-shrink: 1;
   align-items: center;
   gap: 2px;
   min-width: 0;
+  overflow-x: auto;
 }
 
 .step,

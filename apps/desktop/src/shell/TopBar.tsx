@@ -7,6 +7,7 @@ type TopBarProps = {
   route: Route;
   onNavigate: (path: string) => void;
   onAction?: () => void;
+  actionLabel?: string;
 };
 
 export function TopBar({
@@ -14,6 +15,7 @@ export function TopBar({
   route,
   onNavigate,
   onAction,
+  actionLabel,
 }: TopBarProps) {
   return (
     <header className={styles.bar}>
@@ -42,8 +44,8 @@ export function TopBar({
       >
         {SETTINGS.label}
       </button>
-      <Button tone="primary" onClick={onAction}>
-        {route.action}
+      <Button tone="primary" className={styles.action} onClick={onAction}>
+        {actionLabel ?? route.action}
       </Button>
     </header>
   );

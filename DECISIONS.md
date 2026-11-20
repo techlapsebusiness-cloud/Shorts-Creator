@@ -311,3 +311,13 @@ Pause and resume are session-clock math. Recorded time stays 0 until the 3 secon
 Start recording still refuses a same-monitor capture. The record screen does not launch FFmpeg.
 
 **Why.** Three processes start a few milliseconds apart. Storing the offsets keeps that skew, and the 50 ms rule checks the media, not the process start. A clap detector can re-sync a real take later. The lavfi path is the gate that runs here.
+
+---
+
+### 2026-11-20 — Start recording on a Mac
+
+**Decision.** On a Mac, Start recording calls `start_take`. That lists FFmpeg avfoundation devices and writes `screen.mov` (Capture screen, cursor hidden, `h264_videotoolbox` at 40M), `cam.mov`, and `mic.wav` (48 kHz pcm) under `~/Movies/ShortsStudio/takes/<unix>/`. Stop recording sends SIGINT so FFmpeg can finish the file. The window opens at 1280×800, centered, and the top-bar action does not shrink, so the button stays inside a 13-inch laptop screen.
+
+Linux still refuses a same-monitor capture. `screencapturekit` is not compiled in this checkout. The prompter window stays `contentProtected`. If the prompter appears in `screen.mov`, the next step is an `SCContentFilter` that excludes that window id.
+
+**Why.** The button always submitted the Linux same-monitor refusal, so a click on the Mac never opened a capture. A 1440-wide window also pushes the button past the right edge of a 13-inch MacBook.

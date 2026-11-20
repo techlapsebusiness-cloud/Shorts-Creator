@@ -146,7 +146,7 @@ The prompter keeps the fixed-speed clock until a transcript chunk arrives. `whis
 
 **Failing / blocked:** none.
 
-**Manual checks for Akshay:** one real take on the Mini and one on Omarchy. Confirm sync by eye and by the stored offsets. Portal capture, ScreenCaptureKit, and the live mic meter on a real device stay MANUAL. Hiding desktop icons is a macOS best-effort check on the Mini. The M00 doctor, native `just dev`, M03 key paste, M04 live script, and M05 magenta checks are still open.
+**Manual checks for Akshay:** on the Mac, `just dev`, press Start recording, allow Screen Recording, Camera, and Microphone, then press Stop. The files land in `~/Movies/ShortsStudio/takes/<unix>/`. Confirm the prompter is absent from `screen.mov`. One real take on Omarchy is still open. Portal capture and ScreenCaptureKit stay MANUAL. Hiding desktop icons is a macOS best-effort check. The M00 doctor, native `just dev`, M03 key paste, M04 live script, and M05 magenta checks are still open.
 
 **Next step:** wait for "continue", then branch `m07-transcription`.
 

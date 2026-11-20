@@ -2,10 +2,12 @@
 
 pub const NAME: &str = "media";
 
+pub mod avfoundation;
 pub mod doctor;
 pub mod exclusion;
 pub mod take;
 
+pub use avfoundation::{begin_live_take, end_live_take};
 pub use exclusion::{
     Capture, ListedWindow, MAGENTA, MacExclusion, MagentaRun, PROMPTER_TITLE, PrompterPlacement,
     Rect, RefuseReason, frame_shows_magenta, is_magenta, mac_exclusion, magenta_capture,

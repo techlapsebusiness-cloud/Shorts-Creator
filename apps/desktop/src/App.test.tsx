@@ -3,12 +3,19 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
+const host = vi.hoisted(() => ({ mac: false }));
+
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(),
 }));
 
+vi.mock("./record/host", () => ({
+  hostRecordsDirectly: () => host.mac,
+}));
+
 describe("App", () => {
   beforeEach(() => {
+    host.mac = false;
     window.history.pushState(null, "", "/");
     vi.mocked(invoke).mockImplementation(async (cmd: string) => {
       if (cmd === "health") {
@@ -17,8 +24,17 @@ describe("App", () => {
       if (cmd === "spend_status") {
         return { spentUsd: 0, capUsd: 20, decision: "allow" };
       }
-      if (cmd === "show_prompter" || cmd === "prompter_click_through") {
+      if (
+        cmd === "show_prompter" ||
+        cmd === "prompter_click_through" ||
+        cmd === "stop_take"
+      ) {
         return null;
+      }
+      if (cmd === "start_take") {
+        return {
+          directory: "/Users/me/Movies/ShortsStudio/takes/1",
+        };
       }
       if (cmd === "recording_gate") {
         throw new Error(
@@ -71,6 +87,24 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
     await waitFor(() => {
       expect(screen.getByRole("status")).toHaveTextContent("another monitor");
+    });
+  });
+
+  it("starts a take on a Mac and the same button stops it", async () => {
+    host.mac = true;
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "/Users/me/Movies/ShortsStudio/takes/1",
+      );
+    });
+    expect(invoke).toHaveBeenCalledWith("start_take");
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Stop recording" })[0],
+    );
+    await waitFor(() => {
+      expect(invoke).toHaveBeenCalledWith("stop_take");
     });
   });
 });

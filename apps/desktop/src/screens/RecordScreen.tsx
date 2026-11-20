@@ -86,6 +86,7 @@ type RecordScreenProps = {
   openaiModel?: string;
   wordsPerMinute?: number;
   captureNote?: string;
+  onStop?: () => void;
   onGenerate?: (brief: ScriptBrief) => Promise<GeneratedScript>;
   onRegenerate?: (
     brief: ScriptBrief,
@@ -151,6 +152,7 @@ export function RecordScreen({
   openaiModel = "",
   wordsPerMinute = WORDS_PER_MINUTE,
   captureNote = "",
+  onStop,
   onGenerate,
   onRegenerate,
 }: RecordScreenProps) {
@@ -378,7 +380,9 @@ export function RecordScreen({
               {item}
             </Pill>
           ))}
-          <Button tone="danger">Stop recording</Button>
+          <Button tone="danger" onClick={onStop}>
+            Stop recording
+          </Button>
           <Button
             aria-pressed={paused}
             onClick={() => setPaused((value) => !value)}

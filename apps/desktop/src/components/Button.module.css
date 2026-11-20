@@ -5,6 +5,7 @@
   border-radius: 8px;
   background: var(--panel);
   color: var(--text);
+  cursor: pointer;
 }
 
 .button:disabled {

@@ -12,7 +12,9 @@ pub fn run() {
             app::regenerate_beat,
             app::recording_gate,
             app::show_prompter,
-            app::prompter_click_through
+            app::prompter_click_through,
+            app::start_take,
+            app::stop_take
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -10,9 +10,9 @@ mod meter;
 mod script_flow;
 
 pub use commands::{
-    GateRequest, Health, ScriptPayload, SpendStatus, capture_devices, generate_script, health,
-    prompter_click_through, recording_gate, regenerate_beat, set_spend_cap, show_prompter,
-    spend_status, test_provider,
+    GateRequest, Health, ScriptPayload, SpendStatus, TakeStarted, capture_devices, generate_script,
+    health, prompter_click_through, recording_gate, regenerate_beat, set_spend_cap, show_prompter,
+    spend_status, start_take, stop_take, test_provider,
 };
 
 pub fn linked_crates() -> [&'static str; 4] {

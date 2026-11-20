@@ -18,6 +18,7 @@ import {
 } from "./screens/SettingsScreen";
 import { UploadScreen } from "./screens/UploadScreen";
 import { armPrompter } from "./prompter/bridge";
+import { hostRecordsDirectly } from "./record/host";
 import { PrompterWindow } from "./prompter/PrompterWindow";
 import { applyAccent, type AccentId } from "./shell/accents";
 import { routeFromPath, type Route } from "./shell/routes";
@@ -74,6 +75,7 @@ export default function App() {
   const [accent, setAccent] = useState<AccentId>("rust");
   const [models, setModels] = useState({ claude: "", openai: "" });
   const [captureNote, setCaptureNote] = useState("");
+  const [recording, setRecording] = useState(false);
   const standalone =
     new URLSearchParams(window.location.search).get("window") === "prompter";
 
@@ -111,8 +113,23 @@ export default function App() {
     setAccent(id);
   }
 
+  async function stopRecording() {
+    try {
+      const directory = await invoke<string>("stop_take");
+      setRecording(false);
+      setCaptureNote(`Saved ${directory}`);
+    } catch (error) {
+      setRecording(false);
+      setCaptureNote(noteFrom(error));
+    }
+  }
+
   async function startRecording() {
     if (route.id !== "record") {
+      return;
+    }
+    if (recording) {
+      await stopRecording();
       return;
     }
     try {
@@ -120,11 +137,23 @@ export default function App() {
     } catch {
       // The browser preview has no second window.
     }
+    if (!hostRecordsDirectly(navigator.userAgent)) {
+      try {
+        await invoke("recording_gate", { gate: MONITOR_GATE });
+        setCaptureNote("Recording starts in 3 s.");
+        await armPrompter();
+      } catch (error) {
+        setCaptureNote(noteFrom(error));
+      }
+      return;
+    }
     try {
-      await invoke("recording_gate", { gate: MONITOR_GATE });
-      setCaptureNote("Recording starts in 3 s.");
+      const started = await invoke<{ directory: string }>("start_take");
+      setRecording(true);
+      setCaptureNote(`Recording to ${started.directory}`);
       await armPrompter();
     } catch (error) {
+      setRecording(false);
       setCaptureNote(noteFrom(error));
     }
   }
@@ -143,6 +172,7 @@ export default function App() {
         route={route}
         onNavigate={navigate}
         onAction={() => void startRecording()}
+        actionLabel={recording ? "Stop recording" : undefined}
       />
       <main className={styles.stage} data-screen={route.id}>
         {route.id === "record" ? (
@@ -152,6 +182,7 @@ export default function App() {
             onGenerate={generateScript}
             onRegenerate={regenerateBeat}
             captureNote={captureNote}
+            onStop={() => void stopRecording()}
           />
         ) : null}
         {route.id === "edit" ? <EditScreen /> : null}
