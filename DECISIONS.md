@@ -14,7 +14,7 @@ Observed on 2026-11-19, not yet depended on: `screencapturekit` 1.5.2 docs show 
 
 **Why.** The schema lives in `core`, which must compile without Tauri. `ts-rs` is a derive on those structs and writes plain `.ts` files during `cargo test`, so drift shows up in the test gate. `specta` is the stronger fit for generated command clients, and its own docs still describe a 2.0 release candidate with exact version pins. Command wrappers stay small and handwritten until a stable `tauri-specta` is worth a migration.
 
-**Library and version.** `ts-rs`, unpinned. Pin in M01.
+**Library and version.** `ts-rs` 12.0.1. See the 2026-11-20 pin.
 
 **Links.** <https://github.com/Aleph-Alpha/ts-rs> · <https://specta.dev/docs/tauri-specta> · <https://docs.rs/specta/latest/specta/>
 
@@ -40,7 +40,7 @@ Observed on 2026-11-19, not yet depended on: `screencapturekit` 1.5.2 docs show 
 
 **Why.** The database is a local library: projects, topic queue, usage, uploads, originality hashes. Calls are short and can run on a blocking thread inside Tauri commands. Bundled SQLite means Omarchy and the Mini share one SQLite build.
 
-**Library and version.** `rusqlite`, unpinned. Pin in M01.
+**Library and version.** `rusqlite` 0.43.0 with `bundled`. See the 2026-11-20 pin.
 
 **Links.** <https://docs.rs/rusqlite>
 
@@ -196,3 +196,26 @@ Observed on 2026-11-19, not yet depended on: `screencapturekit` 1.5.2 docs show 
 **Decision.** Develop and run the automatic gate on Omarchy. macOS ScreenCaptureKit, VideoToolbox, permission probes, and the magenta capture are compiled with `cfg(target_os = "macos")` and marked MANUAL in `progress.md` until they run on the Mini.
 
 **Why.** This checkout is the secondary machine. The prompt's primary proof stays on the M4, and Linux still has to record, edit, and export.
+
+---
+
+### 2026-11-20 — Project schema v1 and the library
+
+**Decision.** `project.json` is schema version 1. Times in the file are seconds (`f64`). Clip ordering uses integer milliseconds on `TimelineSpan`, separate from a clip's duration, so the property tests stay exact. The document has no nulls: an empty string means unset. Clip bodies are an internally tagged `kind` enum. `#[serde(rename_all_fields = "camelCase")]` renames variant fields, so `source_in` is `sourceIn`. Export defaults are 2160×3840, 30 fps, h264, 40000 kbps video, and 384 kbps audio.
+
+`#[ts(export)]` on `Project` writes `apps/desktop/src/bindings/` during `cargo test`. `.cargo/config.toml` sets `TS_RS_EXPORT_DIR` there and `TS_RS_LARGE_INT=number`. Those generated files are committed and ignored by ESLint and Prettier. `zod` 4 parses the same JSON, and the schema is annotated `z.ZodType<Project>` so a field rename fails `tsc`.
+
+SQLite schema lives in `crates/store/migrations/001_library.sql`. Opening the library applies it and records version 1 in `schema_migrations`. Autosave waits 5 seconds from the first dirty mark. A later edit does not reset that timer. The save writes `project.json.tmp` in the same directory, `sync_all`, then renames over `project.json`. `load_project` reads only `project.json`.
+
+**Versions.**
+
+| Crate / package | Version |
+|---|---|
+| ts-rs | 12.0.1 |
+| proptest | 1.12.0 |
+| rusqlite | 0.43.0 (`bundled`; default features compiled on Omarchy) |
+| zod | 4.6.7 |
+
+**Why.** `rename_all` on an enum renames variants and leaves struct-variant fields alone. `rename_all_fields` is what serde 1.0.229 and ts-rs 12 both apply to those fields, which keeps the fixture, the generated types, and zod on one spelling. Bundled SQLite compiled here with its default features, including the modern SQLite build, so those features stay on.
+
+**Links.** <https://docs.rs/ts-rs/12.0.1/ts_rs/> · <https://docs.rs/rusqlite/0.43.0/rusqlite/> · <https://zod.dev/>

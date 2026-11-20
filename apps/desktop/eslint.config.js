@@ -8,6 +8,7 @@ export default tseslint.config(
       "dist",
       "src-tauri/**",
       "node_modules",
+      "src/bindings/**",
       "**/test-results/**",
       "**/playwright-report/**",
     ],

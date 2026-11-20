@@ -13,6 +13,10 @@ case "$module" in
     ./scripts/fixtures.sh
     ./scripts/check-fixtures.sh
     ;;
+  M01)
+    cargo test -p core -p store
+    pnpm --dir apps/desktop exec vitest run src/schema
+    ;;
   *)
     echo "unknown module: ${module:-<missing>}" >&2
     echo "usage: just test-module M00" >&2

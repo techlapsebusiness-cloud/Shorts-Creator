@@ -1,0 +1,136 @@
+{
+  "ai": {
+    "beats": [
+      {
+        "cues": [
+          "CUE: point at the folder"
+        ],
+        "kind": "hook",
+        "start": 0.0,
+        "text": "This file survives a crash."
+      }
+    ],
+    "language": "hinglish",
+    "model": "",
+    "provider": "",
+    "rawDraft": "Hook. Show the save. CTA.",
+    "topic": "crash-safe saves"
+  },
+  "assets": {
+    "addEndCard": true,
+    "burnCover": false,
+    "coverTemplate": "hookFace",
+    "endCardStyle": "rise"
+  },
+  "audioChain": {
+    "compressor": {
+      "amount": 0.0,
+      "enabled": false
+    },
+    "deesser": {
+      "amount": 0.0,
+      "enabled": false
+    },
+    "ducking": {
+      "attackMs": 80.0,
+      "enabled": false,
+      "reductionDb": -12.0,
+      "releaseMs": 400.0
+    },
+    "eq": {
+      "amount": 0.0,
+      "enabled": false
+    },
+    "loudness": {
+      "enabled": false,
+      "integratedLufs": -14.0,
+      "truePeakDb": -1.0
+    },
+    "noise": {
+      "amount": 0.0,
+      "enabled": false
+    }
+  },
+  "export": {
+    "animateAt60": true,
+    "audioBitrateKbps": 384,
+    "codec": "h264",
+    "easing": "easeInOut",
+    "fps": 30,
+    "frameBlend": true,
+    "height": 3840,
+    "motionBlur": false,
+    "smoothCursor": true,
+    "videoBitrateKbps": 40000,
+    "width": 2160
+  },
+  "id": "proj-example",
+  "layout": {
+    "accent": "#FF7A3D",
+    "camPosition": "bottomRight",
+    "camShape": "circle",
+    "camSize": "M",
+    "preset": "screenCam",
+    "safeZone": true
+  },
+  "name": "Example short",
+  "number": 1,
+  "slug": "example-short",
+  "sync": {
+    "camOffsetMs": 0.0,
+    "micOffsetMs": 0.0,
+    "screenOffsetMs": 0.0
+  },
+  "tracks": [
+    {
+      "clips": [],
+      "id": "V3"
+    },
+    {
+      "clips": [],
+      "id": "V2"
+    },
+    {
+      "clips": [
+        {
+          "body": {
+            "kind": "video",
+            "source": "media/screen.mov",
+            "sourceIn": 0.0,
+            "sourceOut": 2.5,
+            "speed": 1.0
+          },
+          "duration": 2.5,
+          "id": "clip-screen",
+          "keyframes": [
+            {
+              "easing": "easeInOut",
+              "property": "zoom",
+              "time": 0.0,
+              "value": 1.0
+            }
+          ],
+          "timelineStart": 0.0
+        }
+      ],
+      "id": "V1"
+    },
+    {
+      "clips": [],
+      "id": "TXT"
+    },
+    {
+      "clips": [],
+      "id": "A1"
+    },
+    {
+      "clips": [],
+      "id": "A2"
+    },
+    {
+      "clips": [],
+      "id": "A3"
+    }
+  ],
+  "version": 1
+}

@@ -6,5 +6,6 @@ pnpm-lock.yaml
 Cargo.lock
 apps/desktop/src-tauri/icons
 apps/desktop/src-tauri/gen
+apps/desktop/src/bindings
 **/playwright-report
 **/test-results
