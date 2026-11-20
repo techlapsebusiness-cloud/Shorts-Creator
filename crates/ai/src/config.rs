@@ -8,7 +8,13 @@ pub struct AiConfig {
     pub alert_ratio: f64,
     pub routing: Routing,
     pub defaults: Defaults,
+    pub script: ScriptPace,
     pub rates: Rates,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ScriptPace {
+    pub words_per_minute: f64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,6 +80,7 @@ mod tests {
         assert_eq!(provider_for("fact_check"), Some("claude"));
         assert_eq!(config.defaults.claude, "");
         assert_eq!(config.defaults.openai, "");
+        assert!((config.script.words_per_minute - 140.0).abs() < 0.000_001);
         assert!((config.rates.claude_input).abs() < 0.000_001);
         assert!((config.rates.openai_output).abs() < 0.000_001);
     }

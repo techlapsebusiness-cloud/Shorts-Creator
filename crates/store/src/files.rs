@@ -89,4 +89,17 @@ mod tests {
         assert_eq!(project.slug, "old-short");
         fs::remove_dir_all(&dir).expect("cleanup");
     }
+
+    #[test]
+    fn an_edited_beat_survives_save_and_reload() {
+        let dir = temp_dir();
+        let mut project = example_project();
+        project.ai.raw_draft = "original draft".to_string();
+        core::replace_beat_text(&mut project.ai.beats, 0, "Edited in the panel").expect("edit");
+        save_project(&dir, &project).expect("save");
+        let loaded = load_project(&dir).expect("load");
+        assert_eq!(loaded.ai.beats[0].text, "Edited in the panel");
+        assert_eq!(loaded.ai.raw_draft, "original draft");
+        fs::remove_dir_all(&dir).expect("cleanup");
+    }
 }

@@ -7,8 +7,12 @@ pub const NAME: &str = "app";
 
 mod commands;
 mod meter;
+mod script_flow;
 
-pub use commands::{Health, SpendStatus, health, set_spend_cap, spend_status, test_provider};
+pub use commands::{
+    Health, ScriptPayload, SpendStatus, generate_script, health, regenerate_beat, set_spend_cap,
+    spend_status, test_provider,
+};
 
 pub fn linked_crates() -> [&'static str; 4] {
     [core::NAME, media::NAME, ai::NAME, store::NAME]

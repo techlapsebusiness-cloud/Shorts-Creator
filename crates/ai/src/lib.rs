@@ -10,12 +10,14 @@ pub const ANTHROPIC_VERSION: &str = "2026-10-21";
 
 mod anthropic;
 mod config;
+mod connect;
 mod error;
 mod json_call;
 mod mock;
 mod openai;
 mod provider;
 mod redact;
+mod script;
 mod secrets;
 mod spend;
 mod sse;
@@ -23,12 +25,16 @@ mod test_key;
 mod transport;
 mod types;
 
-pub use config::{AiConfig, Defaults, Rates, Routing, config, default_model, provider_for};
+pub use config::{
+    AiConfig, Defaults, Rates, Routing, ScriptPace, config, default_model, provider_for,
+};
+pub use connect::connect;
 pub use error::AiError;
 pub use json_call::complete_json;
 pub use mock::MockProvider;
 pub use provider::LlmProvider;
 pub use redact::redact;
+pub use script::{GeneratedScript, RegeneratedBeat, ScriptBrief, generate_script, regenerate_beat};
 pub use secrets::{MemoryStore, OsStore, SecretStore};
 pub use spend::{SpendDecision, cost_usd, decide};
 pub use test_key::{ProviderTest, execute_test, list_models};
@@ -116,6 +122,7 @@ mod tests {
             include_str!("anthropic.rs"),
             include_str!("openai.rs"),
             include_str!("config.rs"),
+            include_str!("script.rs"),
         ];
         for source in files {
             assert!(!source.contains("gpt-"), "model id in source");

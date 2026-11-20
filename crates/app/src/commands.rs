@@ -1,3 +1,4 @@
+use ai::SecretStore;
 use serde::Serialize;
 use tauri::Manager;
 
@@ -58,6 +59,102 @@ pub fn set_spend_cap(app: tauri::AppHandle, cap_usd: f64) -> Result<(), String> 
 
 fn data_dir(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
     app.path().app_data_dir().map_err(|error| error.to_string())
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScriptPayload {
+    pub raw_draft: String,
+    pub beats: Vec<core::Beat>,
+}
+
+#[tauri::command]
+pub fn generate_script(
+    app: tauri::AppHandle,
+    brief: ai::ScriptBrief,
+) -> Result<ScriptPayload, String> {
+    if brief.model.trim().is_empty() {
+        return Err("Pick a model in Settings.".into());
+    }
+    let key = provider_key(&brief.provider)?;
+    let provider = ai::connect(&brief.provider, &key)
+        .map_err(|error| ai::redact(&error.to_string(), &[&key]))?;
+    let mut library = open_library(&app)?;
+    let stamp = stamp();
+    let generated = crate::script_flow::generate_within_cap(
+        &mut library,
+        provider.as_ref(),
+        &brief,
+        &crate::script_flow::SpendGate {
+            cap_usd: current_cap(&app)?,
+            alert_ratio: ai::config().alert_ratio,
+            created_at: &stamp,
+        },
+    )
+    .map_err(|error| ai::redact(&error.to_string(), &[&key]))?;
+    Ok(ScriptPayload {
+        raw_draft: generated.raw_draft,
+        beats: generated.beats,
+    })
+}
+
+#[tauri::command]
+pub fn regenerate_beat(
+    app: tauri::AppHandle,
+    brief: ai::ScriptBrief,
+    index: usize,
+    beats: Vec<core::Beat>,
+) -> Result<core::Beat, String> {
+    if brief.model.trim().is_empty() {
+        return Err("Pick a model in Settings.".into());
+    }
+    let key = provider_key(&brief.provider)?;
+    let provider = ai::connect(&brief.provider, &key)
+        .map_err(|error| ai::redact(&error.to_string(), &[&key]))?;
+    let mut library = open_library(&app)?;
+    let stamp = stamp();
+    crate::script_flow::regenerate_within_cap(
+        &mut library,
+        provider.as_ref(),
+        &brief,
+        &beats,
+        index,
+        &crate::script_flow::SpendGate {
+            cap_usd: current_cap(&app)?,
+            alert_ratio: ai::config().alert_ratio,
+            created_at: &stamp,
+        },
+    )
+    .map_err(|error| ai::redact(&error.to_string(), &[&key]))
+}
+
+fn provider_key(provider: &str) -> Result<String, String> {
+    let secrets = ai::OsStore;
+    match secrets.get(provider) {
+        Ok(Some(key)) if !key.is_empty() => Ok(key),
+        Ok(_) => Err("No key saved".into()),
+        Err(error) => Err(ai::redact(&error.to_string(), &[])),
+    }
+}
+
+fn open_library(app: &tauri::AppHandle) -> Result<store::Library, String> {
+    let dir = data_dir(app)?;
+    store::Library::open(&dir.join(store::LIBRARY_FILE)).map_err(|error| error.to_string())
+}
+
+fn current_cap(app: &tauri::AppHandle) -> Result<f64, String> {
+    let dir = data_dir(app)?;
+    Ok(effective_cap(
+        read_cap(&dir.join("spend-cap.txt")),
+        ai::config().cap_usd,
+    ))
+}
+
+fn stamp() -> String {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_secs().to_string())
+        .unwrap_or_else(|_| "0".into())
 }
 
 #[cfg(test)]

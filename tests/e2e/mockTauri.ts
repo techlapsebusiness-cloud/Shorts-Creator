@@ -25,6 +25,16 @@ export async function mockTauri(page: Page) {
         if (cmd === "set_spend_cap") {
           return Promise.resolve(null);
         }
+        if (cmd === "generate_script" || cmd === "regenerate_beat") {
+          return Promise.resolve({
+            rawDraft: "",
+            beats: [],
+            kind: "hook",
+            start: 0,
+            text: "",
+            cues: [],
+          });
+        }
         return Promise.reject(new Error(`unmocked command ${cmd}`));
       },
       metadata: {

@@ -267,3 +267,17 @@ Live tests compile and return immediately unless `LIVE_AI=1`. Listing models als
 | toml | 1.2.1 |
 
 **Links.** <https://developers.openai.com/api/docs/guides/streaming-responses> · <https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses> · <https://platform.claude.com/docs/en/build-with-claude/streaming> · <https://docs.rs/keyring/4.2.0/keyring/>
+
+---
+
+### 2026-11-20 — Script prompts and the raw draft
+
+**Decision.** Script prompts live in `prompts/script.md` and `prompts/regenerate-beat.md`. Each file starts with `version: 1`. The model id comes from Settings and is passed on the request. The prompt files name no model.
+
+A script is five beats in order: hook, concept, demo, fix, CTA. The hook starts inside the first 3 seconds when that chip is on. Screen cues and fact-check notes are entries in the existing `cues` list, prefixed `CUE:` and `FACT:`. The Beat schema stays version 1, and the v1 project fixture is unchanged.
+
+The raw draft is the accepted model reply, stored on the script result. Typing in a beat and regenerating one beat leave that string in place. The later originality check compares an edit with this draft. Words per minute is 140 in `config/ai.toml` under `[script]`. The record screen estimator uses the same number and shows words and estimated seconds. An empty model is refused with "Pick a model in Settings." before a provider call. Spend at the monthly cap blocks the same way, and the usage row is recorded after a successful call.
+
+The record screen holds the draft and the beats in React state. The "edit survives save and reload" test writes the edited beat through the crash-safe project writer, because the shell does not open a project folder yet.
+
+**Why.** Prefixing cues keeps fact notes and screen directions on the schema that M01 already round-trips. Keeping the raw reply, rather than a re-serialized document, gives the originality check the text the model actually returned.

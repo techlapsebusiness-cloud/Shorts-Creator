@@ -45,6 +45,7 @@ type SettingsScreenProps = {
   onTest?: (provider: string, key: string) => Promise<ProviderTestResult>;
   onSpend?: () => Promise<SpendView>;
   onCap?: (capUsd: number) => void;
+  onModel?: (provider: "claude" | "openai", model: string) => void;
 };
 
 function spendLine(spent: SpendView | null, ready: boolean): string {
@@ -84,6 +85,7 @@ export function SettingsScreen({
   onTest,
   onSpend,
   onCap,
+  onModel,
 }: SettingsScreenProps) {
   const [claude, setClaude] = useState("");
   const [openai, setOpenai] = useState("");
@@ -132,6 +134,8 @@ export function SettingsScreen({
       setNotice(result.message);
       const models = chosenModel(result);
       const selected = selectedModel(models, result.defaultModel);
+      const chosen = selected === EMPTY_MODELS ? "" : selected;
+      onModel?.(provider, chosen);
       if (provider === "claude") {
         setClaudeModels(models);
         setClaudeModel(selected);
@@ -172,7 +176,10 @@ export function SettingsScreen({
             label="Claude model"
             value={claudeModel}
             options={claudeModels}
-            onChange={setClaudeModel}
+            onChange={(value) => {
+              setClaudeModel(value);
+              onModel?.("claude", value === EMPTY_MODELS ? "" : value);
+            }}
           />
           <Field
             label="OpenAI key"
@@ -185,7 +192,10 @@ export function SettingsScreen({
             label="OpenAI model"
             value={openaiModel}
             options={openaiModels}
-            onChange={setOpenaiModel}
+            onChange={(value) => {
+              setOpenaiModel(value);
+              onModel?.("openai", value === EMPTY_MODELS ? "" : value);
+            }}
           />
           <p className={styles.meta}>
             Models load from the provider when you press Test.

@@ -16,6 +16,9 @@ openai = ""
 
 # USD per million tokens. Zero until current prices are filled in.
 # Keys are provider ids.
+[script]
+words_per_minute = 140.0
+
 [rates]
 claude_input = 0.0
 claude_output = 0.0

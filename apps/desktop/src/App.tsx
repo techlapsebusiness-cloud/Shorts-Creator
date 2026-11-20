@@ -5,7 +5,12 @@ import { AssetsScreen } from "./screens/AssetsScreen";
 import { AudioScreen } from "./screens/AudioScreen";
 import { EditScreen } from "./screens/EditScreen";
 import { ExportScreen } from "./screens/ExportScreen";
-import { RecordScreen } from "./screens/RecordScreen";
+import {
+  RecordScreen,
+  type GeneratedScript,
+  type ScriptBeat,
+  type ScriptBrief,
+} from "./screens/RecordScreen";
 import {
   SettingsScreen,
   type ProviderTestResult,
@@ -29,12 +34,25 @@ function saveCap(capUsd: number) {
   return invoke("set_spend_cap", { capUsd });
 }
 
+function generateScript(brief: ScriptBrief) {
+  return invoke<GeneratedScript>("generate_script", { brief });
+}
+
+function regenerateBeat(
+  brief: ScriptBrief,
+  index: number,
+  beats: ScriptBeat[],
+) {
+  return invoke<ScriptBeat>("regenerate_beat", { brief, index, beats });
+}
+
 export default function App() {
   const [health, setHealth] = useState("booting");
   const [route, setRoute] = useState<Route>(() =>
     routeFromPath(window.location.pathname),
   );
   const [accent, setAccent] = useState<AccentId>("rust");
+  const [models, setModels] = useState({ claude: "", openai: "" });
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +95,14 @@ export default function App() {
       </p>
       <TopBar projectName="Example short" route={route} onNavigate={navigate} />
       <main className={styles.stage} data-screen={route.id}>
-        {route.id === "record" ? <RecordScreen /> : null}
+        {route.id === "record" ? (
+          <RecordScreen
+            claudeModel={models.claude}
+            openaiModel={models.openai}
+            onGenerate={generateScript}
+            onRegenerate={regenerateBeat}
+          />
+        ) : null}
         {route.id === "edit" ? <EditScreen /> : null}
         {route.id === "audio" ? <AudioScreen /> : null}
         {route.id === "assets" ? <AssetsScreen /> : null}
@@ -90,6 +115,9 @@ export default function App() {
             onTest={testProvider}
             onSpend={loadSpend}
             onCap={saveCap}
+            onModel={(provider, model) =>
+              setModels((current) => ({ ...current, [provider]: model }))
+            }
           />
         ) : null}
       </main>

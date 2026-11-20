@@ -6,7 +6,9 @@ pub fn run() {
             app::health,
             app::test_provider,
             app::spend_status,
-            app::set_spend_cap
+            app::set_spend_cap,
+            app::generate_script,
+            app::regenerate_beat
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

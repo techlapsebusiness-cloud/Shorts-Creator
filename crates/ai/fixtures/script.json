@@ -1,0 +1,34 @@
+{
+  "beats": [
+    {
+      "kind": "hook",
+      "start": 0,
+      "text": "Ye file crash ke baad bhi bachi rehti hai.",
+      "cues": ["CUE: point at the folder"]
+    },
+    {
+      "kind": "concept",
+      "start": 3,
+      "text": "Edit project.json mein rehti hai.",
+      "cues": []
+    },
+    {
+      "kind": "demo",
+      "start": 8,
+      "text": "Temp file ko save ke bagal mein dikhao.",
+      "cues": ["CUE: show both files"]
+    },
+    {
+      "kind": "fix",
+      "start": 15,
+      "text": "Poori file ke upar rename karo.",
+      "cues": ["FACT: rename is atomic on the same disk"]
+    },
+    {
+      "kind": "cta",
+      "start": 22,
+      "text": "Agli short banao.",
+      "cues": []
+    }
+  ]
+}

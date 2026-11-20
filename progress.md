@@ -1,6 +1,6 @@
 # Progress — Shorts Studio
 
-Last updated: 2026-11-20 20:40 +0530 · Current module: M03 · Branch: m03-ai-providers
+Last updated: 2026-11-20 20:52 +0530 · Current module: M04 · Branch: m04-script-generator
 
 | Module | Status | Tests (pass/total) | Last full gate | Notes |
 |---|---|---|---|---|
@@ -8,7 +8,7 @@ Last updated: 2026-11-20 20:40 +0530 · Current module: M03 · Branch: m03-ai-pr
 | M01 Project model | ✅ Done | 29/29 | 2026-11-20 19:54 | schema v1, SQLite library, crash-safe autosave |
 | M02 UI shell | ✅ Done | 48/48 | 2026-11-20 20:14 | seven screens, snapshots at 1440×900, axe clean |
 | M03 AI providers | ✅ Done | 75/75 | 2026-11-20 20:40 | Claude and OpenAI behind one trait; live calls return immediately unless LIVE_AI=1 |
-| M04 Script generator | ⬜ Not started | — | — | |
+| M04 Script generator | ✅ Done | 87/87 | 2026-11-20 20:52 | versioned prompts, editable beats, raw draft kept |
 | M05 Prompter | ⬜ Not started | — | — | |
 | M06 Recording | ⬜ Not started | — | — | |
 | M07 Transcription | ⬜ Not started | — | — | |
@@ -91,7 +91,26 @@ Last updated: 2026-11-20 20:40 +0530 · Current module: M03 · Branch: m03-ai-pr
 
 **Manual checks for Akshay:** paste a real key, press Test, and confirm the key is absent from `project.json` and from logs. That check is not required for this done mark. The M00 doctor and native `just dev` checks are still open.
 
-**Next step:** wait for "continue", then branch `m04-script-generator`.
+**Next step:** completed. M04 is below.
+
+## M04 — Script generator
+
+- [x] Versioned prompts in `prompts/script.md` and `prompts/regenerate-beat.md`
+- [x] Fixture JSON validates as five beats: hook, concept, demo, fix, CTA, hook inside 3 s
+- [x] Word count and duration at 140 words per minute
+- [x] Regenerate one beat
+- [x] Raw draft stays when a beat is edited or regenerated
+- [x] An edited beat survives save and reload through the project writer
+
+**Tests:** `just test` at 2026-11-20 20:52. Lint clean. Rust 58 passed (ai 26, app 8, core 13, media 5, store 6). Vitest 21 passed. Playwright 8 passed. axe reported no serious or critical violations. Record snapshot updated. Fixture probe ok. `just test-module M04` passed. Nothing skipped inside the gate.
+
+The record screen keeps the draft and the beats in memory. The save-and-reload proof writes the edited beat with the crash-safe project writer, because the shell does not open a project folder yet.
+
+**Failing / blocked:** none.
+
+**Manual checks for Akshay:** generate one real script with `LIVE_AI=1` and read it. That check is not required for this done mark. The M00 doctor, native `just dev`, and M03 key-paste checks are still open.
+
+**Next step:** wait for "continue", then branch `m05-prompter`.
 
 ## Session log
 
@@ -114,3 +133,7 @@ Read the prompt. Checked current docs for `screencapturekit` window exclusion, `
 ### 2026-11-20 20:40 +0530
 
 "continue" started M03 on `m03-ai-providers`. Claude streams the Messages API and OpenAI streams the Responses API, both behind `LlmProvider`, with a mock that replays fixtures. Keys stay in the keychain, spend is capped at USD 20, and the settings screen lists models only after Test. Full gate passed on Omarchy.
+
+### 2026-11-20 20:52 +0530
+
+"continue" started M04 on `m04-script-generator`. Versioned prompts turn a topic into five editable beats. Screen cues and fact-check notes are `CUE:` and `FACT:` lines on the existing beat. The accepted model reply is stored as the raw draft, and editing or regenerating one beat leaves that draft in place. Full gate passed on Omarchy.
