@@ -281,3 +281,17 @@ The raw draft is the accepted model reply, stored on the script result. Typing i
 The record screen holds the draft and the beats in React state. The "edit survives save and reload" test writes the edited beat through the crash-safe project writer, because the shell does not open a project folder yet.
 
 **Why.** Prefixing cues keeps fact notes and screen directions on the schema that M01 already round-trips. Keeping the raw reply, rather than a re-serialized document, gives the originality check the text the model actually returned.
+
+---
+
+### 2026-11-20 — Prompter window and capture exclusion
+
+**Decision.** The prompter is a second Tauri window labeled `prompter`, title `Prompter`. It is always on top, transparent, undecorated, hidden until Start recording, and `contentProtected`. On macOS, tao 0.37.3 implements `content_protected` as `NSWindowSharingType::None`. That is the second safeguard. The recording filter, when M06 opens a display stream, is `SCContentFilter::create().with_display(display).with_excluding_windows(&[window])` from `screencapturekit` 1.5.3. The window id is the `SCWindow` whose `owning_application().process_id()` and `title()` match this process and `Prompter`.
+
+Scroll offset is playing seconds times words per minute, times half the text size in pixels, plus a nudge. Playing time starts when the 3 second countdown ends. Pause time is subtracted. The window advances that offset with `requestAnimationFrame`. Space pauses, arrow keys nudge 48 pixels, and ⌘⇧P or Ctrl⇧P hides the text. The control bar calls `set_ignore_cursor_events(false)` while the pointer is over it, and `true` when the pointer leaves. The script stays click-through. The buttons receive the clicks.
+
+Voice follow flushes a mic chunk at 3 seconds, or at 2 seconds when the speaker has gone quiet. Silence pauses the scroll. Confidence below 0.6, or a token score below 0.6, keeps the fixed-speed clock. The score is the share of heard tokens that appear in one spoken line. Cue lines are skipped. `whisper-rs` stays in M07. Until a transcript arrives, the clock is the whole follow path.
+
+Linux recording is allowed when the prompter is on a different monitor, or when the capture is a window or region on the same monitor whose rectangle does not overlap the prompter. A shared edge is clear. A monitor capture of the prompter's display is refused, and the reason is shown on the record screen. The 3 second magenta recording is MANUAL. The gate checks a pixel buffer for a magenta block of at least 64 pixels and records the platform skip.
+
+**Links.** <https://docs.rs/screencapturekit/1.5.3/screencapturekit/stream/content_filter/struct.SCContentFilter.html> · <https://docs.rs/tauri/2.12.7/tauri/webview/struct.WebviewWindowBuilder.html>

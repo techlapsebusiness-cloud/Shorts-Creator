@@ -12,9 +12,26 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Shorts Studio",
         "width": 1440,
         "height": 900
+      },
+      {
+        "label": "prompter",
+        "title": "Prompter",
+        "url": "index.html?window=prompter",
+        "width": 720,
+        "height": 320,
+        "alwaysOnTop": true,
+        "transparent": true,
+        "decorations": false,
+        "shadow": false,
+        "visible": false,
+        "skipTaskbar": true,
+        "contentProtected": true,
+        "visibleOnAllWorkspaces": true,
+        "focus": false
       }
     ],
     "security": {

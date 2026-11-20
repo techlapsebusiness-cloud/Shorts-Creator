@@ -28,6 +28,10 @@ describe("RecordScreen", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Pick a model in Settings.",
     );
+    fireEvent.click(screen.getByRole("button", { name: "Pause prompter" }));
+    expect(
+      screen.getByRole("button", { name: "Resume prompter" }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   it("replaces one beat and keeps the raw draft", async () => {

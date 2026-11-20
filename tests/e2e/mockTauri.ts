@@ -25,6 +25,22 @@ export async function mockTauri(page: Page) {
         if (cmd === "set_spend_cap") {
           return Promise.resolve(null);
         }
+        if (
+          cmd === "show_prompter" ||
+          cmd === "prompter_click_through" ||
+          cmd === "plugin:event|emit" ||
+          cmd === "plugin:event|listen" ||
+          cmd === "plugin:event|unlisten"
+        ) {
+          return Promise.resolve(null);
+        }
+        if (cmd === "recording_gate") {
+          return Promise.reject(
+            new Error(
+              "A monitor capture includes the prompter. Move the prompter to another monitor, or capture a window or region that does not overlap it.",
+            ),
+          );
+        }
         if (cmd === "generate_script" || cmd === "regenerate_beat") {
           return Promise.resolve({
             rawDraft: "",

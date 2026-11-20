@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Field, SelectField } from "../components/Field";
@@ -10,6 +10,7 @@ import {
   spokenText,
   wordCount,
 } from "../script/estimate";
+import { publishPrompter, type PrompterLine } from "../prompter/bridge";
 import styles from "./screens.module.css";
 
 const CHIPS = [
@@ -79,6 +80,7 @@ type RecordScreenProps = {
   claudeModel?: string;
   openaiModel?: string;
   wordsPerMinute?: number;
+  captureNote?: string;
   onGenerate?: (brief: ScriptBrief) => Promise<GeneratedScript>;
   onRegenerate?: (
     brief: ScriptBrief,
@@ -86,6 +88,36 @@ type RecordScreenProps = {
     beats: ScriptBeat[],
   ) => Promise<ScriptBeat>;
 };
+
+function leadingNumber(value: string, fallback: number): number {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function opacityOf(value: string): number {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 1;
+  }
+  return parsed > 1 ? Math.min(parsed, 100) / 100 : parsed;
+}
+
+function prompterLines(beats: ScriptBeat[], showCues: boolean): PrompterLine[] {
+  const lines: PrompterLine[] = [];
+  for (const beat of beats) {
+    if (beat.text.trim() !== "") {
+      lines.push({ text: beat.text, cue: false });
+    }
+    if (showCues) {
+      for (const cue of beat.cues) {
+        if (cue.startsWith("CUE:")) {
+          lines.push({ text: cue, cue: true });
+        }
+      }
+    }
+  }
+  return lines;
+}
 
 function clock(start: number): string {
   const total = Math.max(0, Math.floor(start));
@@ -113,6 +145,7 @@ export function RecordScreen({
   claudeModel = "",
   openaiModel = "",
   wordsPerMinute = WORDS_PER_MINUTE,
+  captureNote = "",
   onGenerate,
   onRegenerate,
 }: RecordScreenProps) {
@@ -129,6 +162,25 @@ export function RecordScreen({
   const [underWebcam, setUnderWebcam] = useState(true);
   const [cues, setCues] = useState(true);
   const [preset, setPreset] = useState("Screen + cam");
+  const [speed, setSpeed] = useState(`${wordsPerMinute} wpm`);
+  const [textSize, setTextSize] = useState("48");
+  const [opacity, setOpacity] = useState("100%");
+  const [paused, setPaused] = useState(false);
+
+  const pace = leadingNumber(speed, wordsPerMinute);
+  const size = leadingNumber(textSize, 48);
+
+  useEffect(() => {
+    void publishPrompter({
+      lines: prompterLines(beats, cues),
+      wordsPerMinute: pace,
+      textSize: size,
+      opacity: opacityOf(opacity),
+      mirror,
+      underWebcam,
+      paused,
+    });
+  }, [beats, cues, pace, size, opacity, mirror, underWebcam, paused]);
 
   const spoken = spokenText(beats.map((beat) => beat.text));
   const stats = `${wordCount(spoken)} words · ${estimateSeconds(spoken, wordsPerMinute).toFixed(1)} s at ${wordsPerMinute} wpm`;
@@ -316,8 +368,18 @@ export function RecordScreen({
             </Pill>
           ))}
           <Button tone="danger">Stop recording</Button>
-          <Button>Pause prompter</Button>
+          <Button
+            aria-pressed={paused}
+            onClick={() => setPaused((value) => !value)}
+          >
+            {paused ? "Resume prompter" : "Pause prompter"}
+          </Button>
         </div>
+        {captureNote ? (
+          <p className={styles.meta} role="status">
+            {captureNote}
+          </p>
+        ) : null}
       </div>
       <Card title="Prompter">
         <div className={styles.row}>
@@ -328,8 +390,9 @@ export function RecordScreen({
             Fixed speed
           </Pill>
         </div>
-        <Field label="Speed" value="140 wpm" onChange={() => undefined} />
-        <Field label="Text size" value="48" onChange={() => undefined} />
+        <Field label="Speed" value={speed} onChange={setSpeed} />
+        <Field label="Text size" value={textSize} onChange={setTextSize} />
+        <Field label="Opacity" value={opacity} onChange={setOpacity} />
         <Toggle label="Mirror" checked={mirror} onChange={setMirror} />
         <Toggle
           label="Position under webcam"

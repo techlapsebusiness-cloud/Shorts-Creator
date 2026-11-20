@@ -1,6 +1,6 @@
 # Progress — Shorts Studio
 
-Last updated: 2026-11-20 20:52 +0530 · Current module: M04 · Branch: m04-script-generator
+Last updated: 2026-11-20 21:09 +0530 · Current module: M05 · Branch: m05-prompter
 
 | Module | Status | Tests (pass/total) | Last full gate | Notes |
 |---|---|---|---|---|
@@ -9,7 +9,7 @@ Last updated: 2026-11-20 20:52 +0530 · Current module: M04 · Branch: m04-scrip
 | M02 UI shell | ✅ Done | 48/48 | 2026-11-20 20:14 | seven screens, snapshots at 1440×900, axe clean |
 | M03 AI providers | ✅ Done | 75/75 | 2026-11-20 20:40 | Claude and OpenAI behind one trait; live calls return immediately unless LIVE_AI=1 |
 | M04 Script generator | ✅ Done | 87/87 | 2026-11-20 20:52 | versioned prompts, editable beats, raw draft kept |
-| M05 Prompter | ⬜ Not started | — | — | |
+| M05 Prompter | ✅ Done | 105/105 | 2026-11-20 21:09 | separate window; magenta capture MANUAL |
 | M06 Recording | ⬜ Not started | — | — | |
 | M07 Transcription | ⬜ Not started | — | — | |
 | M08 Timeline | ⬜ Not started | — | — | |
@@ -110,7 +110,27 @@ The record screen keeps the draft and the beats in memory. The save-and-reload p
 
 **Manual checks for Akshay:** generate one real script with `LIVE_AI=1` and read it. That check is not required for this done mark. The M00 doctor, native `just dev`, and M03 key-paste checks are still open.
 
-**Next step:** wait for "continue", then branch `m05-prompter`.
+**Next step:** completed. M05 is below.
+
+## M05 — Teleprompter window
+
+- [x] Separate always-on-top window, transparent, click-through except its controls
+- [x] Scroll from `requestAnimationFrame` using elapsed time, after a 3 second countdown
+- [x] Speed, text size, mirror, opacity, under the webcam, and distinct `CUE:` lines
+- [x] Hotkeys: Space pauses, ↑↓ nudge, ⌘⇧P or Ctrl⇧P hides the text
+- [x] Voice-follow decision: 2–3 second chunks, Hinglish fuzzy match, pause on silence, fixed speed when confidence is low
+- [x] Linux refusal when a monitor capture includes the prompter, or a window/region overlaps it
+- [x] macOS exclusion plan: match the window by pid and title, then sharing type none
+
+**Tests:** `just test` at 2026-11-20 21:09. Lint clean. Rust 71 passed (ai 26, app 9, core 19, media 11, store 6). Vitest 25 passed. Playwright 9 passed. axe reported no serious or critical violations. Record snapshot updated for the opacity field. Fixture probe ok. `just test-module M05` passed. The 3 second magenta capture returns immediately with a MANUAL reason. On Linux that reason names the Wayland portal. On macOS it names the Mini permission check. The histogram checker itself runs in the gate.
+
+The prompter keeps the fixed-speed clock until a transcript chunk arrives. `whisper-rs` stays in M07. A missing transcript takes the low-confidence path, which is fixed speed.
+
+**Failing / blocked:** none inside the gate.
+
+**Manual checks for Akshay:** on Omarchy, open the prompter, confirm the text ignores clicks and the controls still receive them, and read the refusal when Start recording uses a monitor capture. On the Mini, record 3 seconds with the magenta pattern and confirm it is absent. The M00 doctor, native `just dev`, M03 key paste, and M04 live script checks are still open.
+
+**Next step:** wait for "continue", then branch `m06-recording`.
 
 ## Session log
 
@@ -137,3 +157,7 @@ Read the prompt. Checked current docs for `screencapturekit` window exclusion, `
 ### 2026-11-20 20:52 +0530
 
 "continue" started M04 on `m04-script-generator`. Versioned prompts turn a topic into five editable beats. Screen cues and fact-check notes are `CUE:` and `FACT:` lines on the existing beat. The accepted model reply is stored as the raw draft, and editing or regenerating one beat leaves that draft in place. Full gate passed on Omarchy.
+
+### 2026-11-20 21:09 +0530
+
+"continue" started M05 on `m05-prompter`. The prompter is its own always-on-top window. Scroll follows elapsed time after a 3 second countdown, and a Hinglish transcript can move it to the spoken line. A monitor capture that includes the prompter is refused. The magenta recording stays MANUAL. Full gate passed on Omarchy.

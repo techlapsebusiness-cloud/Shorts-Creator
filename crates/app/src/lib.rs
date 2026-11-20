@@ -10,7 +10,8 @@ mod meter;
 mod script_flow;
 
 pub use commands::{
-    Health, ScriptPayload, SpendStatus, generate_script, health, regenerate_beat, set_spend_cap,
+    GateRequest, Health, ScriptPayload, SpendStatus, generate_script, health,
+    prompter_click_through, recording_gate, regenerate_beat, set_spend_cap, show_prompter,
     spend_status, test_provider,
 };
 

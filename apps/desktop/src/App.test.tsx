@@ -17,6 +17,14 @@ describe("App", () => {
       if (cmd === "spend_status") {
         return { spentUsd: 0, capUsd: 20, decision: "allow" };
       }
+      if (cmd === "show_prompter" || cmd === "prompter_click_through") {
+        return null;
+      }
+      if (cmd === "recording_gate") {
+        throw new Error(
+          "A monitor capture includes the prompter. Move the prompter to another monitor, or capture a window or region that does not overlap it.",
+        );
+      }
       throw new Error(cmd);
     });
   });
@@ -56,5 +64,13 @@ describe("App", () => {
     expect(
       screen.getByRole("heading", { name: "Daily Short mode" }),
     ).toBeInTheDocument();
+  });
+
+  it("refuses a monitor capture that includes the prompter", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("another monitor");
+    });
   });
 });

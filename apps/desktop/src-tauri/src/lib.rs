@@ -8,7 +8,10 @@ pub fn run() {
             app::spend_status,
             app::set_spend_cap,
             app::generate_script,
-            app::regenerate_beat
+            app::regenerate_beat,
+            app::recording_gate,
+            app::show_prompter,
+            app::prompter_click_through
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

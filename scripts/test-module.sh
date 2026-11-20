@@ -29,6 +29,10 @@ case "$module" in
     cargo test -p core -p ai -p store -p app
     pnpm --dir apps/desktop exec vitest run src/script src/screens/RecordScreen.test.tsx
     ;;
+  M05)
+    cargo test -p core -p media -p app
+    pnpm --dir apps/desktop exec vitest run src/prompter src/screens/RecordScreen.test.tsx src/App.test.tsx
+    ;;
   *)
     echo "unknown module: ${module:-<missing>}" >&2
     echo "usage: just test-module M00" >&2

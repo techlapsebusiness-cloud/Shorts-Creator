@@ -6,9 +6,15 @@ type TopBarProps = {
   projectName: string;
   route: Route;
   onNavigate: (path: string) => void;
+  onAction?: () => void;
 };
 
-export function TopBar({ projectName, route, onNavigate }: TopBarProps) {
+export function TopBar({
+  projectName,
+  route,
+  onNavigate,
+  onAction,
+}: TopBarProps) {
   return (
     <header className={styles.bar}>
       <p className={styles.mark}>&gt;&gt;</p>
@@ -36,7 +42,9 @@ export function TopBar({ projectName, route, onNavigate }: TopBarProps) {
       >
         {SETTINGS.label}
       </button>
-      <Button tone="primary">{route.action}</Button>
+      <Button tone="primary" onClick={onAction}>
+        {route.action}
+      </Button>
     </header>
   );
 }

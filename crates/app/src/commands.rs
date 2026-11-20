@@ -1,5 +1,5 @@
 use ai::SecretStore;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::Manager;
 
 use crate::meter::{effective_cap, read_cap, write_cap};
@@ -150,6 +150,87 @@ fn current_cap(app: &tauri::AppHandle) -> Result<f64, String> {
     ))
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GateRect {
+    pub x: i32,
+    pub y: i32,
+    pub width: i32,
+    pub height: i32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GateRequest {
+    pub prompter_monitor: u32,
+    pub capture: String,
+    pub capture_monitor: u32,
+    pub prompter: GateRect,
+    pub capture_bounds: GateRect,
+}
+
+fn placed(rect: &GateRect) -> media::Rect {
+    media::Rect {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+    }
+}
+
+#[tauri::command]
+pub fn recording_gate(gate: GateRequest) -> Result<(), String> {
+    let capture = match gate.capture.as_str() {
+        "monitor" => media::Capture::Monitor {
+            monitor_id: gate.capture_monitor,
+        },
+        "window" => media::Capture::Window {
+            monitor_id: gate.capture_monitor,
+            bounds: placed(&gate.capture_bounds),
+        },
+        "region" => media::Capture::Region {
+            monitor_id: gate.capture_monitor,
+            bounds: placed(&gate.capture_bounds),
+        },
+        _ => return Err("Unknown capture".into()),
+    };
+    media::recording_allowed(
+        media::PrompterPlacement {
+            monitor_id: gate.prompter_monitor,
+            bounds: placed(&gate.prompter),
+        },
+        capture,
+    )
+    .map_err(|reason| reason.to_string())
+}
+
+pub const PROMPTER_LABEL: &str = "prompter";
+
+#[tauri::command]
+pub fn show_prompter(app: tauri::AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window(PROMPTER_LABEL)
+        .ok_or("Prompter window is missing")?;
+    window.show().map_err(|error| error.to_string())?;
+    window
+        .set_always_on_top(true)
+        .map_err(|error| error.to_string())?;
+    window
+        .set_ignore_cursor_events(true)
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn prompter_click_through(app: tauri::AppHandle, ignore: bool) -> Result<(), String> {
+    let window = app
+        .get_webview_window(PROMPTER_LABEL)
+        .ok_or("Prompter window is missing")?;
+    window
+        .set_ignore_cursor_events(ignore)
+        .map_err(|error| error.to_string())
+}
+
 fn stamp() -> String {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -166,5 +247,28 @@ mod tests {
         let health = health();
         assert_eq!(health.name, "shorts-studio");
         assert!(!health.version.is_empty());
+    }
+
+    #[test]
+    fn a_same_monitor_capture_is_refused_with_a_reason() {
+        let error = super::recording_gate(super::GateRequest {
+            prompter_monitor: 0,
+            capture: "monitor".into(),
+            capture_monitor: 0,
+            prompter: super::GateRect {
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+            },
+            capture_bounds: super::GateRect {
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+            },
+        })
+        .unwrap_err();
+        assert!(error.contains("another monitor"));
     }
 }
