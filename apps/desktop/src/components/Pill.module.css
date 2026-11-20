@@ -1,0 +1,16 @@
+.pill {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-mid);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.on {
+  border-color: var(--accent);
+  background: var(--select);
+  color: var(--text);
+}

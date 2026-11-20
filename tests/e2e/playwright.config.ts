@@ -12,4 +12,10 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:1420",
   },
+  expect: {
+    toHaveScreenshot: {
+      animations: "disabled",
+      caret: "hide",
+    },
+  },
 });

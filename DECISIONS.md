@@ -28,7 +28,7 @@ Observed on 2026-11-19, not yet depended on: `screencapturekit` 1.5.2 docs show 
 
 **Why.** The UI is a fixed token set and seven screens. Component CSS sits next to the component, and the visual snapshots in M02 diff real rules. Accent switching writes `--accent`.
 
-**Library and version.** None beyond Vite's CSS modules. Font files added in M02; record the font file version there.
+**Library and version.** CSS modules. Font files are pinned in the 2026-11-20 entry.
 
 ---
 
@@ -219,3 +219,23 @@ SQLite schema lives in `crates/store/migrations/001_library.sql`. Opening the li
 **Why.** `rename_all` on an enum renames variants and leaves struct-variant fields alone. `rename_all_fields` is what serde 1.0.229 and ts-rs 12 both apply to those fields, which keeps the fixture, the generated types, and zod on one spelling. Bundled SQLite compiled here with its default features, including the modern SQLite build, so those features stay on.
 
 **Links.** <https://docs.rs/ts-rs/12.0.1/ts_rs/> · <https://docs.rs/rusqlite/0.43.0/rusqlite/> · <https://zod.dev/>
+
+---
+
+### 2026-11-20 — Shell fonts, accent, and screen checks
+
+**Decision.** Space Grotesk and JetBrains Mono are committed as woff2 files under `apps/desktop/src/fonts/`, with the SIL Open Font License beside each family. The shell does not load a font CDN. Switching accent writes `--accent` on the document element. The seven screens are static placeholder UI. Route and accent live in React state. Visual snapshots are Playwright captures at 1440×900, and axe must report no serious or critical violations.
+
+**Options.** `@fontsource` imported from `node_modules`. Fonts committed in the repo. Zustand for the route and accent.
+
+**Why.** A committed file still renders when the machine is offline and the install cache is empty. `@fontsource` 5.3.0 is only the source of the woff2 subsets and the license text. Two pieces of UI state do not need a store yet.
+
+**Versions.**
+
+| Asset | Version |
+|---|---|
+| Space Grotesk | v22, latin woff2 from `@fontsource/space-grotesk` 5.3.0 |
+| JetBrains Mono | v24, latin woff2 from `@fontsource/jetbrains-mono` 5.3.0 |
+| @axe-core/playwright | 4.14.0 |
+
+**Links.** <https://github.com/floriankarsten/space-grotesk> · <https://github.com/JetBrains/JetBrainsMono> · <https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright>

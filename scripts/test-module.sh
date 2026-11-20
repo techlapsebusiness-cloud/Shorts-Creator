@@ -17,6 +17,10 @@ case "$module" in
     cargo test -p core -p store
     pnpm --dir apps/desktop exec vitest run src/schema
     ;;
+  M02)
+    pnpm --dir apps/desktop test
+    pnpm --dir tests/e2e test
+    ;;
   *)
     echo "unknown module: ${module:-<missing>}" >&2
     echo "usage: just test-module M00" >&2

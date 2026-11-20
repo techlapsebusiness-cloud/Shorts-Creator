@@ -1,12 +1,12 @@
 # Progress — Shorts Studio
 
-Last updated: 2026-11-20 19:54 +0530 · Current module: M01 · Branch: m01-project-model
+Last updated: 2026-11-20 20:14 +0530 · Current module: M02 · Branch: m02-ui-shell
 
 | Module | Status | Tests (pass/total) | Last full gate | Notes |
 |---|---|---|---|---|
 | M00 Scaffold | ✅ Done | 14/14 | 2026-11-19 22:16 | doctor passed on Omarchy; Mac permissions MANUAL |
 | M01 Project model | ✅ Done | 29/29 | 2026-11-20 19:54 | schema v1, SQLite library, crash-safe autosave |
-| M02 UI shell | ⬜ Not started | — | — | |
+| M02 UI shell | ✅ Done | 48/48 | 2026-11-20 20:14 | seven screens, snapshots at 1440×900, axe clean |
 | M03 AI providers | ⬜ Not started | — | — | |
 | M04 Script generator | ⬜ Not started | — | — | |
 | M05 Prompter | ⬜ Not started | — | — | |
@@ -57,7 +57,23 @@ Last updated: 2026-11-20 19:54 +0530 · Current module: M01 · Branch: m01-proje
 
 **Manual checks for Akshay:** none for M01. The M00 Mac doctor and native `just dev` checks are still open.
 
-**Next step:** wait for "continue", then branch `m02-ui-shell`.
+**Next step:** completed. M02 is below.
+
+## M02 — UI shell and design system
+
+- [x] Tokens and vendored Space Grotesk and JetBrains Mono (OFL)
+- [x] Buttons, pills, toggles, cards, inputs
+- [x] Top bar: chevron, `sudoakshay/shorts`, project name, six step tabs, AI settings, context action
+- [x] Routes for all seven screens, with placeholder data
+- [x] Accent switcher writes `--accent` (rust, mint, amber, blue)
+
+**Tests:** `just test` at 2026-11-20 20:14. Lint clean. Rust 24 passed. Vitest 16 passed. Playwright 8 passed (boot plus one visit per screen). axe reported no serious or critical violations. Visual snapshots of each screen at 1440×900. Fixture probe ok. `just test-module M02` passed. Nothing skipped inside the gate.
+
+**Failing / blocked:** none.
+
+**Manual checks for Akshay:** glance at the shell on the Mini once a build exists there. Linux snapshots are the gate. The M00 doctor and native `just dev` checks are still open.
+
+**Next step:** wait for "continue", then branch `m03-ai-providers`.
 
 ## Session log
 
@@ -72,3 +88,7 @@ Read the prompt. Checked current docs for `screencapturekit` window exclusion, `
 ### 2026-11-20 19:54 +0530
 
 "continue" started M01 on `m01-project-model`. Schema v1, integer-millisecond clip ordering, v0 migration, SQLite library, and crash-safe autosave are in. `ts-rs` 12.0.1 writes the bindings during `cargo test`. zod 4.6.7 parses the committed v1 fixture as the generated `Project` type. Full gate passed on Omarchy.
+
+### 2026-11-20 20:14 +0530
+
+"continue" started M02 on `m02-ui-shell`. The seven screens are static on the slide theme, with Space Grotesk and JetBrains Mono committed under `apps/desktop/src/fonts/`. Playwright visits every screen at 1440×900, axe is clean, and the accent switch writes `--accent`. Full gate passed on Omarchy.
