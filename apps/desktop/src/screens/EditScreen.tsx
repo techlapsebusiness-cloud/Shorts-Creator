@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "../components/Card";
 import { Pill } from "../components/Pill";
 import { SelectField } from "../components/Field";
 import { Toggle } from "../components/Toggle";
+import {
+  historyOf,
+  pushHistory,
+  redoHistory,
+  rippleDelete,
+  splitSpan,
+  undoHistory,
+  type History,
+  type Span,
+} from "../timeline/edit";
 import styles from "./screens.module.css";
 
 const POSITIONS = [
@@ -50,6 +60,49 @@ export function EditScreen() {
   const [language, setLanguage] = useState("Hinglish");
   const [tool, setTool] = useState("Select (V)");
   const [snap, setSnap] = useState(true);
+  const [track, setTrack] = useState<History<Span[]>>(() =>
+    historyOf([{ id: "screen", startMs: 0, durationMs: 10_000 }]),
+  );
+
+  function splitScreen() {
+    const target = track.present.at(-1);
+    if (!target || target.durationMs < 2) {
+      return;
+    }
+    const at = target.startMs + Math.floor(target.durationMs / 2);
+    const next = splitSpan(track.present, target.id, at);
+    if (next !== track.present) {
+      setTrack(pushHistory(track, next));
+    }
+  }
+
+  function rippleSelected() {
+    const target = track.present.at(-1);
+    if (!target) {
+      return;
+    }
+    const next = rippleDelete(track.present, target.id);
+    if (next !== track.present) {
+      setTrack(pushHistory(track, next));
+    }
+  }
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (
+        !(event.metaKey || event.ctrlKey) ||
+        event.key.toLowerCase() !== "z"
+      ) {
+        return;
+      }
+      event.preventDefault();
+      setTrack((current) =>
+        event.shiftKey ? redoHistory(current) : undoHistory(current),
+      );
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <div className={styles.page}>
@@ -162,7 +215,15 @@ export function EditScreen() {
               type="button"
               className={styles.tool}
               aria-pressed={tool === item}
-              onClick={() => setTool(item)}
+              onClick={() => {
+                setTool(item);
+                if (item === "Split (S)") {
+                  splitScreen();
+                }
+                if (item === "Ripple delete") {
+                  rippleSelected();
+                }
+              }}
             >
               {item}
             </button>
@@ -183,8 +244,23 @@ export function EditScreen() {
           {TRACKS.map(([name, clip]) => (
             <li key={name} className={styles.track}>
               <span className={styles.trackName}>{name}</span>
-              <span className={styles.lane}>
-                {clip ? <span className={`${styles.clip} ${clip}`} /> : null}
+              <span
+                className={styles.lane}
+                data-testid={name === "V1 SCREEN" ? "v1-lane" : undefined}
+                data-count={
+                  name === "V1 SCREEN" ? track.present.length : undefined
+                }
+              >
+                {name === "V1 SCREEN" ? (
+                  track.present.map((span) => (
+                    <span
+                      key={span.id}
+                      className={`${styles.clip} ${styles.screen}`}
+                    />
+                  ))
+                ) : clip ? (
+                  <span className={`${styles.clip} ${clip}`} />
+                ) : null}
               </span>
             </li>
           ))}

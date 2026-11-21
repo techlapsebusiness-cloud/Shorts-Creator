@@ -17,6 +17,21 @@ describe("App", () => {
       if (cmd === "spend_status") {
         return { spentUsd: 0, capUsd: 20, decision: "allow" };
       }
+      if (cmd === "list_capture_devices") {
+        return {
+          screens: [],
+          cameras: [],
+          microphones: [],
+          backend: "avfoundation",
+        };
+      }
+      if (cmd === "disk_estimate") {
+        return {
+          freeBytes: 10_000_000_000,
+          bytesPerMinute: 180_000_000,
+          minutesRemaining: 55,
+        };
+      }
       throw new Error(cmd);
     });
   });

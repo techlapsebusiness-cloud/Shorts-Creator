@@ -7,8 +7,16 @@ pub const NAME: &str = "app";
 
 mod commands;
 mod meter;
+mod record;
+mod transcript;
 
 pub use commands::{Health, SpendStatus, health, set_spend_cap, spend_status, test_provider};
+pub use record::{
+    RecordState, StartRecordingArgs, default_countdown_secs, disk_estimate, list_capture_devices,
+    pause_recording, prepare_take, recording_status, resume_recording, start_recording,
+    stop_recording,
+};
+pub use transcript::transcribe_take;
 
 pub fn linked_crates() -> [&'static str; 4] {
     [core::NAME, media::NAME, ai::NAME, store::NAME]

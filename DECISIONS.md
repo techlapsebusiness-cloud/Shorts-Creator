@@ -267,3 +267,59 @@ Live tests compile and return immediately unless `LIVE_AI=1`. Listing models als
 | toml | 1.2.1 |
 
 **Links.** <https://developers.openai.com/api/docs/guides/streaming-responses> · <https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses> · <https://platform.claude.com/docs/en/build-with-claude/streaming> · <https://docs.rs/keyring/4.2.0/keyring/>
+
+---
+
+### 2026-11-20 — M06 recording uses FFmpeg children first
+
+**Decision.** The M06 recording session spawns one FFmpeg process per track (screen, cam, mic) plus a synthetic `cursor.jsonl` writer at 120 Hz. Automated tests use the `lavfi` backend (`testsrc2` / `testsrc` / `sine`) with a fixed `-t` duration and assert ffprobe durations within 50 ms. Real Mac devices use `avfoundation` device ids from `ffmpeg -f avfoundation -list_devices`. Linux portal/`ashpd` + PipeWire screen capture and ScreenCaptureKit window exclusion stay deferred: SCK exclusion needs the M05 prompter window id; portal capture is refused with a clear error until that path lands. Lavfi fixture takes encode with `libx264`; real takes prefer `h264_videotoolbox` when doctor sees it, else `libx264`. Pause/resume uses `kill -STOP` / `kill -CONT` on the child pids.
+
+**Options.** ScreenCaptureKit `SCRecordingOutput` for screen on day one. FFmpeg for all three tracks. ashpd + pipewire for Linux screen in the same module.
+
+**Why.** The prompt's acceptance test is lavfi-shaped and must pass on Omarchy without screen-recording TCC. One FFmpeg path covers fixture, Mac, and cam/mic on Linux. SCK remains the planned exclusion path once M05 exists; pinning it now would not make the lavfi gate greener.
+
+**Library and version.** System FFmpeg (n9.0.2 on this machine). No new Rust capture crate pinned in M06.
+
+**Links.** <https://ffmpeg.org/ffmpeg-devices.html#avfoundation> · <https://docs.rs/screencapturekit/latest/screencapturekit/>
+
+---
+
+### 2026-11-20 — Real Mac screen uses ScreenCaptureKit
+
+**Decision.** On macOS, an `avfoundation` take writes `screen.mov` with `screencapturekit` 1.5.4 (`macos_15_0`): the first display, H.264, MOV, on a dedicated thread so `SCStream` never has to be `Send`. Windows owned by this process are excluded by pid until M05 can pass a prompter window id. Camera and microphone stay FFmpeg `avfoundation` inputs. Missing ids resolve to the first "Capture screen" display, the first non-iPhone camera, and the first non-iPhone microphone. `lavfi` stays the automated gate and still encodes with `libx264`. If ScreenCaptureKit refuses to start, the error tells the user to allow Screen Recording for the `shorts-studio` binary. Pause still only stops the FFmpeg children; the screen track keeps writing.
+
+**Options.** Keep screen on `ffmpeg -f avfoundation` (`{id}:none`). Wait for M05 before any ScreenCaptureKit.
+
+**Why.** `avfoundation` screen on this Mac is device index 3 (`Capture screen 0`), and the old fallback index `1` is an iPhone camera, so real takes were either a lavfi test pattern or the wrong device. ScreenCaptureKit records the display directly and can drop this app's windows without the prompter existing yet.
+
+**Library and version.** `screencapturekit` 1.5.4, feature `macos_15_0`. The media tests and the Tauri binary add `-rpath /usr/lib/swift` so `libswift_Concurrency.dylib` resolves from the dyld shared cache. The Command Line Tools copy is left off that rpath so both Swift runtimes are not loaded together.
+
+**Links.** <https://docs.rs/screencapturekit/1.5.4/screencapturekit/>
+
+---
+
+### 2026-11-20 — Whisper word timestamps
+
+**Decision.** `whisper-rs` 0.16.0 (`whisper-rs-sys` 0.15.0) with the `metal` feature on macOS and the default CPU build elsewhere. A take queues transcription on a background thread after stop. `FullParams` enables token timestamps, `set_split_on_word(true)`, and `set_max_len(1)`, which the 0.16 docs still describe as the word-boundary split. Segment `t0`/`t1` are centiseconds and are stored as seconds on `WordStamp`. Language is left unset so the multilingual model auto-detects. The model path stays `ggml-large-v3-turbo.bin` from doctor. If that file is absent, the report status is `model-absent` and silence detection still runs on `mic.wav`. Fillers default to `umm`, `uh`, `matlab`, `basically`, `you know`. A silence is a PCM gap of at least 0.6 s below RMS 0.02. Chapters match script beat tokens onto the transcript in order.
+
+**Options.** Derive words only from token times. Download the model inside the test gate.
+
+**Why.** `set_split_on_word` is still on `FullParams` in 0.16, and `max_len(1)` is what makes whisper.cpp emit one segment per word. The turbo model is hundreds of megabytes and is not in the repo, so the ±150 ms test uses the committed `known-words.json` fixture. A real Hinglish take stays MANUAL until that file is downloaded.
+
+**Library and version.** `whisper-rs` 0.16.0, `metal` on macOS. Build needs CMake (4.5.1 on this Mac).
+
+**Links.** <https://docs.rs/whisper-rs/0.16.0/whisper_rs/struct.FullParams.html> · <https://docs.rs/whisper-rs/0.16.0/whisper_rs/struct.WhisperSegment.html>
+
+---
+
+### 2026-11-20 — Timeline edits stay in milliseconds
+
+**Decision.** Split, trim, ripple delete, and move run on integer-millisecond spans in `core`, the same unit as `TimelineSpan`. Clip seconds are converted only at the `split_clips` boundary. Undo keeps 100 previous drafts and drops the oldest. The Edit screen draft uses Immer 11.2.10 for the same split and ripple operations, so Playwright can run them without the Rust process. Speed is clamped to 0.25–4. Waveform peaks are max-abs buckets. A 720p proxy is named `*.720p.mp4` at 1280×720; the encode itself waits for the preview path.
+
+**Options.** One Rust edit engine compiled to WASM. Immer patches as the undo log.
+
+**Why.** The property tests need exact durations, and floating clip times would make "total duration" flaky. Snapshot history is enough for a 100-step undo of a small track. Immer is what the plan names for the UI draft.
+
+**Library and version.** `immer` 11.2.10. No new Rust crate.
+
+**Links.** <https://immerjs.github.io/immer/>

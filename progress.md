@@ -1,6 +1,6 @@
 # Progress — Shorts Studio
 
-Last updated: 2026-11-20 20:40 +0530 · Current module: M03 · Branch: m03-ai-providers
+Last updated: 2026-11-20 22:45 +0530 · Current module: M08 · Branch: m08-timeline
 
 | Module | Status | Tests (pass/total) | Last full gate | Notes |
 |---|---|---|---|---|
@@ -10,9 +10,9 @@ Last updated: 2026-11-20 20:40 +0530 · Current module: M03 · Branch: m03-ai-pr
 | M03 AI providers | ✅ Done | 75/75 | 2026-11-20 20:40 | Claude and OpenAI behind one trait; live calls return immediately unless LIVE_AI=1 |
 | M04 Script generator | ⬜ Not started | — | — | |
 | M05 Prompter | ⬜ Not started | — | — | |
-| M06 Recording | ⬜ Not started | — | — | |
-| M07 Transcription | ⬜ Not started | — | — | |
-| M08 Timeline | ⬜ Not started | — | — | |
+| M06 Recording | 🔧 In progress | — | — | lavfi gate; macOS screen is ScreenCaptureKit 1.5.4, cam/mic avfoundation |
+| M07 Transcription | 🔧 In progress | — | — | whisper-rs 0.16 Metal; fillers, silences, chapters; model download still MANUAL |
+| M08 Timeline | 🔧 In progress | — | — | split, trim, ripple, 100-step undo; Playwright split → ripple → undo |
 | M09 Layout, cam, captions | ⬜ Not started | — | — | |
 | M10 Audio | ⬜ Not started | — | — | |
 | M11 Render | ⬜ Not started | — | — | |
@@ -114,3 +114,19 @@ Read the prompt. Checked current docs for `screencapturekit` window exclusion, `
 ### 2026-11-20 20:40 +0530
 
 "continue" started M03 on `m03-ai-providers`. Claude streams the Messages API and OpenAI streams the Responses API, both behind `LlmProvider`, with a mock that replays fixtures. Keys stay in the keychain, spend is capped at USD 20, and the settings screen lists models only after Test. Full gate passed on Omarchy.
+
+### 2026-11-20 21:53 +0530
+
+Started M06 on `m06-recording` (skipped ahead of M04/M05 at Akshay's request so recording can be tested). FFmpeg lavfi three-track session writes `screen.mov`, `cam.mov`, `mic.wav`, and `cursor.jsonl` with shared offsets. Record screen Start/Stop/Pause wired through Tauri. `just test-module M06` passed. Still open before ✅: live mic meter, click/keystroke overlay data, macOS icon hide, window/region pickers, Linux portal capture, ScreenCaptureKit exclusion (needs M05), real-device MANUAL takes, and the full `just test` gate.
+
+### 2026-11-20 22:30 +0530
+
+Started M07 on `m07-transcription`. whisper-rs 0.16 with Metal queues a transcript after each take. Fillers, 0.6 s silences, and beat chapters are in `core`. `just test-module M07` passed (fixture words within ±150 ms, synthetic fillers and silence). The ggml model is still absent, so a real Hinglish transcript is MANUAL. Full `just test` has not been run for this module.
+
+### 2026-11-20 22:36 +0530
+
+Started M08 on `m08-timeline`. Timeline edits use integer milliseconds. Split, trim, and ripple delete keep clips ordered and the duration sum exact under proptest. Undo stores 100 drafts. The Edit screen Split and Ripple delete buttons run the same operations through Immer, and Playwright does split → ripple delete → undo. Still open before ✅: move/snap on the timeline UI, markers, transitions, keyboard map beyond undo, waveform drawing, 720p proxy encode, and the full `just test` gate.
+
+### 2026-11-20 22:45 +0530
+
+Mac screen capture now uses ScreenCaptureKit 1.5.4 (`macos_15_0`) for `avfoundation` takes. The first display is written to `screen.mov` as H.264 MOV, and windows owned by this process are excluded. Camera and mic stay FFmpeg avfoundation, preferring the built-in devices over iPhone Continuity devices. The Record screen shows the take folder after stop. Lavfi remains the automated gate. An ignored probe wrote a 1440×900 H.264 `screen.mov` (~0.8 s). Still MANUAL: grant Screen Recording, Camera, and Microphone to the debug `shorts-studio` binary, then restart `just dev`.

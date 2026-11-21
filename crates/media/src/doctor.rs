@@ -178,6 +178,10 @@ pub fn whisper_model_present(dir: &Path) -> bool {
     dir.join(WHISPER_MODEL_FILE).is_file()
 }
 
+pub fn whisper_model_path() -> PathBuf {
+    default_model_dir().join(WHISPER_MODEL_FILE)
+}
+
 pub fn pipewire_socket(runtime_dir: &Path) -> PathBuf {
     runtime_dir.join("pipewire-0")
 }

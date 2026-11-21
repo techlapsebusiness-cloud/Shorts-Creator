@@ -104,6 +104,27 @@
   height: 356px;
 }
 
+.preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  background: #000;
+}
+
+.preview:not([data-live]) {
+  display: none;
+}
+
+.recorded > .banner,
+.recorded > .meta {
+  position: relative;
+  z-index: 1;
+  margin: 8px;
+}
+
 .dot {
   width: 8px;
   height: 8px;

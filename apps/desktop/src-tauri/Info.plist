@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSCameraUsageDescription</key>
+  <string>Shorts Studio shows your camera in the record preview and saves it as its own track.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Shorts Studio records your microphone as its own track.</string>
+  <key>NSScreenCaptureUsageDescription</key>
+  <string>Shorts Studio records the screen as its own track. The prompter is excluded.</string>
+</dict>
+</plist>

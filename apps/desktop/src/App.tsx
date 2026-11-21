@@ -35,6 +35,7 @@ export default function App() {
     routeFromPath(window.location.pathname),
   );
   const [accent, setAccent] = useState<AccentId>("rust");
+  const [recordAction, setRecordAction] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,9 +76,20 @@ export default function App() {
       <p className={styles.health} data-testid="health">
         {health}
       </p>
-      <TopBar projectName="Example short" route={route} onNavigate={navigate} />
+      <TopBar
+        projectName="Example short"
+        route={route}
+        onNavigate={navigate}
+        onAction={() => {
+          if (route.id === "record") {
+            setRecordAction((value) => value + 1);
+          }
+        }}
+      />
       <main className={styles.stage} data-screen={route.id}>
-        {route.id === "record" ? <RecordScreen /> : null}
+        {route.id === "record" ? (
+          <RecordScreen actionToken={recordAction} />
+        ) : null}
         {route.id === "edit" ? <EditScreen /> : null}
         {route.id === "audio" ? <AudioScreen /> : null}
         {route.id === "assets" ? <AssetsScreen /> : null}
