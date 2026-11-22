@@ -18,7 +18,18 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "allow": [
+            "$APPDATA/**",
+            "$HOME/Movies/ShortsStudio/**",
+            "$HOME/Library/Application Support/com.sudoakshay.shortsstudio/**"
+          ],
+          "deny": []
+        }
+      }
     }
   },
   "bundle": {

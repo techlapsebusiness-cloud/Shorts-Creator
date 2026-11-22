@@ -54,6 +54,10 @@ pub struct Project {
 pub struct Track {
     pub id: TrackId,
     pub clips: Vec<Clip>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub muted: bool,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub solo: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -155,6 +159,10 @@ pub struct Layout {
     pub cam_shape: CamShape,
     pub safe_zone: bool,
     pub accent: String,
+    #[serde(default = "default_transition", skip_serializing_if = "is_cut")]
+    pub transition: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub markers_secs: Vec<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -353,8 +361,22 @@ impl Default for Layout {
             cam_shape: CamShape::Circle,
             safe_zone: true,
             accent: "#FF7A3D".to_string(),
+            transition: default_transition(),
+            markers_secs: Vec::new(),
         }
     }
+}
+
+fn default_transition() -> String {
+    "cut".to_string()
+}
+
+fn is_cut(value: &str) -> bool {
+    value == "cut"
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 impl Default for AudioStage {
@@ -454,6 +476,8 @@ pub fn default_tracks() -> Vec<Track> {
     .map(|id| Track {
         id,
         clips: Vec::new(),
+        muted: false,
+        solo: false,
     })
     .collect()
 }

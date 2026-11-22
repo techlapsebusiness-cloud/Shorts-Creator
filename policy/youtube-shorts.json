@@ -1,0 +1,18 @@
+{
+  "max_duration_secs": 60,
+  "checked_on": "2026-11-22",
+  "source": "https://support.google.com/youtube/answer/15424877",
+  "title_limit": 100,
+  "banned_hashtags": ["viral", "fyp"],
+  "studio": [
+    { "label": "Audience", "value": "Not made for kids" },
+    { "label": "Altered content", "value": "No" },
+    { "label": "Category", "value": "Science & Technology" },
+    { "label": "Video language", "value": "Hindi" },
+    { "label": "Related video", "value": "None" },
+    { "label": "Custom thumbnail", "value": "cover.png" },
+    { "label": "Comments", "value": "On" },
+    { "label": "Remixing", "value": "Off" },
+    { "label": "Visibility", "value": "Private" }
+  ]
+}

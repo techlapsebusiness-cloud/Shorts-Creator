@@ -25,6 +25,9 @@ describe("App", () => {
           backend: "avfoundation",
         };
       }
+      if (cmd === "list_takes") {
+        return [];
+      }
       if (cmd === "disk_estimate") {
         return {
           freeBytes: 10_000_000_000,

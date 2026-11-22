@@ -112,6 +112,15 @@ pub fn diagnose() -> Diagnosis {
             ok = false;
             lines.push("pipewire process: not running".to_string());
         }
+        if on_path("gst-launch-1.0").is_some() {
+            lines.push("gstreamer: gst-launch-1.0".to_string());
+        } else {
+            ok = false;
+            lines.push(
+                "gstreamer: gst-launch-1.0 missing (portal screen capture needs gst-plugin-pipewire)"
+                    .to_string(),
+            );
+        }
         lines.push("macos permissions: skipped".to_string());
     } else if cfg!(target_os = "macos") {
         lines.push(

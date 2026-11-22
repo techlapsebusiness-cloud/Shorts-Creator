@@ -1,0 +1,36 @@
+{
+  "raw": "This file survives a crash. The edit lives in project.json. Show the temp file beside the save. Rename over the last complete file. Build the next short.",
+  "factCheck": ["Rename is atomic on the same volume."],
+  "beats": [
+    {
+      "kind": "hook",
+      "start": 0,
+      "text": "This file survives a crash.",
+      "cues": ["point at the folder"]
+    },
+    {
+      "kind": "concept",
+      "start": 3,
+      "text": "The edit lives in project.json.",
+      "cues": ["highlight project.json"]
+    },
+    {
+      "kind": "demo",
+      "start": 8,
+      "text": "Show the temp file beside the save.",
+      "cues": ["split the finder window"]
+    },
+    {
+      "kind": "fix",
+      "start": 15,
+      "text": "Rename over the last complete file.",
+      "cues": ["show the rename"]
+    },
+    {
+      "kind": "cta",
+      "start": 22,
+      "text": "Build the next short.",
+      "cues": ["end card"]
+    }
+  ]
+}

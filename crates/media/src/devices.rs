@@ -163,7 +163,7 @@ fn list_linux() -> DeviceList {
 
     let screens = vec![CaptureDevice {
         id: "portal".to_string(),
-        label: "Portal ScreenCast (manual)".to_string(),
+        label: "Portal ScreenCast".to_string(),
         kind: DeviceKind::Screen,
     }];
 

@@ -10,5 +10,6 @@ ai = { path = "../ai" }
 core = { path = "../core" }
 media = { path = "../media" }
 serde.workspace = true
+serde_json.workspace = true
 store = { path = "../store" }
 tauri.workspace = true

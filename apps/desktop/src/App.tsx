@@ -5,6 +5,7 @@ import { AssetsScreen } from "./screens/AssetsScreen";
 import { AudioScreen } from "./screens/AudioScreen";
 import { EditScreen } from "./screens/EditScreen";
 import { ExportScreen } from "./screens/ExportScreen";
+import { PrompterScreen } from "./screens/PrompterScreen";
 import { RecordScreen } from "./screens/RecordScreen";
 import {
   SettingsScreen,
@@ -12,6 +13,7 @@ import {
   type SpendView,
 } from "./screens/SettingsScreen";
 import { UploadScreen } from "./screens/UploadScreen";
+import { SessionProvider, useSession } from "./session";
 import { applyAccent, type AccentId } from "./shell/accents";
 import { routeFromPath, type Route } from "./shell/routes";
 import { TopBar } from "./shell/TopBar";
@@ -30,12 +32,25 @@ function saveCap(capUsd: number) {
 }
 
 export default function App() {
+  return (
+    <SessionProvider>
+      <Studio />
+    </SessionProvider>
+  );
+}
+
+function Studio() {
+  const session = useSession();
   const [health, setHealth] = useState("booting");
   const [route, setRoute] = useState<Route>(() =>
     routeFromPath(window.location.pathname),
   );
   const [accent, setAccent] = useState<AccentId>("rust");
   const [recordAction, setRecordAction] = useState(0);
+  const [prompter] = useState(() => {
+    const path = window.location.pathname.replace(/\/$/, "");
+    return path === "/prompter";
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -71,13 +86,17 @@ export default function App() {
     setAccent(id);
   }
 
+  if (prompter) {
+    return <PrompterScreen />;
+  }
+
   return (
     <div className={styles.app}>
       <p className={styles.health} data-testid="health">
         {health}
       </p>
       <TopBar
-        projectName="Example short"
+        projectName={session.project?.name ?? "Example short"}
         route={route}
         onNavigate={navigate}
         onAction={() => {
@@ -88,7 +107,13 @@ export default function App() {
       />
       <main className={styles.stage} data-screen={route.id}>
         {route.id === "record" ? (
-          <RecordScreen actionToken={recordAction} />
+          <RecordScreen
+            actionToken={recordAction}
+            onOpened={(opened) => {
+              session.setOpened(opened);
+              navigate("/edit");
+            }}
+          />
         ) : null}
         {route.id === "edit" ? <EditScreen /> : null}
         {route.id === "audio" ? <AudioScreen /> : null}

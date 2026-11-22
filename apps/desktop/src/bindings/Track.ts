@@ -2,4 +2,4 @@
 import type { Clip } from "./Clip";
 import type { TrackId } from "./TrackId";
 
-export type Track = { id: TrackId, clips: Array<Clip>, };
+export type Track = { id: TrackId, clips: Array<Clip>, muted: boolean, solo: boolean, };

@@ -4,4 +4,4 @@ import type { CamShape } from "./CamShape";
 import type { CamSize } from "./CamSize";
 import type { LayoutPreset } from "./LayoutPreset";
 
-export type Layout = { preset: LayoutPreset, camPosition: CamPosition, camSize: CamSize, camShape: CamShape, safeZone: boolean, accent: string, };
+export type Layout = { preset: LayoutPreset, camPosition: CamPosition, camSize: CamSize, camShape: CamShape, safeZone: boolean, accent: string, transition: string, markersSecs: Array<number>, };

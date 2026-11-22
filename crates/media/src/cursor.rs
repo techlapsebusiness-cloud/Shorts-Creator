@@ -98,15 +98,21 @@ impl CursorWriter {
         let handle = thread::spawn(move || {
             let period = Duration::from_nanos(1_000_000_000 / CURSOR_HZ);
             let mut index = 0u64;
+            let mut previous_buttons = 0u8;
             while !stop_flag.load(Ordering::SeqCst) {
                 let t_ms = origin.elapsed().as_secs_f64() * 1000.0;
-                let angle = index as f64 * 0.05;
+                let (x, y, buttons) = live_cursor().unwrap_or_else(|| {
+                    let angle = index as f64 * 0.05;
+                    (960.0 + angle.cos() * 200.0, 540.0 + angle.sin() * 120.0, 0)
+                });
+                let click = (buttons != 0 && previous_buttons == 0).then_some(true);
+                previous_buttons = buttons;
                 let sample = CursorSample {
                     t_ms,
-                    x: 960.0 + angle.cos() * 200.0,
-                    y: 540.0 + angle.sin() * 120.0,
-                    buttons: 0,
-                    click: None,
+                    x,
+                    y,
+                    buttons,
+                    click,
                 };
                 let line = serde_json::to_string(&sample).map_err(|error| CursorError {
                     message: format!("serialize cursor sample: {error}"),
@@ -145,6 +151,54 @@ impl CursorWriter {
     }
 }
 
+fn live_cursor() -> Option<(f64, f64, u8)> {
+    #[cfg(target_os = "macos")]
+    {
+        sample_macos()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        None
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn sample_macos() -> Option<(f64, f64, u8)> {
+    let event = cg_event_create(std::ptr::null_mut());
+    if event.is_null() {
+        return None;
+    }
+    let point = cg_event_location(event);
+    unsafe { cf_release(event) };
+    let button = cg_button_state(1, 0);
+    Some((point.x, point.y, u8::from(button != 0)))
+}
+
+#[cfg(target_os = "macos")]
+#[link(name = "CoreGraphics", kind = "framework")]
+unsafe extern "C" {
+    #[link_name = "CGEventCreate"]
+    safe fn cg_event_create(source: *mut std::ffi::c_void) -> *mut std::ffi::c_void;
+    #[link_name = "CGEventGetLocation"]
+    safe fn cg_event_location(event: *mut std::ffi::c_void) -> CgPoint;
+    #[link_name = "CGEventSourceButtonState"]
+    safe fn cg_button_state(state: i32, button: i32) -> u8;
+}
+
+#[cfg(target_os = "macos")]
+#[link(name = "CoreFoundation", kind = "framework")]
+unsafe extern "C" {
+    #[link_name = "CFRelease"]
+    unsafe fn cf_release(value: *const std::ffi::c_void);
+}
+
+#[cfg(target_os = "macos")]
+#[repr(C)]
+struct CgPoint {
+    x: f64,
+    y: f64,
+}
+
 impl Drop for CursorWriter {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::SeqCst);
@@ -169,7 +223,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("cursor.jsonl");
         let writer = CursorWriter::start_synthetic(path.clone(), Instant::now()).unwrap();
-        thread::sleep(Duration::from_millis(80));
+        thread::sleep(Duration::from_millis(200));
         let path = writer.stop().unwrap();
         let samples = parse_cursor_jsonl(&path).unwrap();
         assert!(samples.len() >= 5);

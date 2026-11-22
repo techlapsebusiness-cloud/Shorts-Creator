@@ -33,6 +33,15 @@ export async function mockTauri(page: Page) {
             backend: "avfoundation",
           });
         }
+        if (cmd === "list_takes") {
+          return Promise.resolve([]);
+        }
+        if (cmd === "open_take" || cmd === "save_opened_project") {
+          return Promise.resolve({
+            dir: "/tmp/movies/1000-take",
+            project: { id: "1000", name: "Take 1000", tracks: [] },
+          });
+        }
         if (cmd === "disk_estimate") {
           return Promise.resolve({
             freeBytes: 10_000_000_000,

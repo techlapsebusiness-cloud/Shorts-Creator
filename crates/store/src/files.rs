@@ -89,4 +89,28 @@ mod tests {
         assert_eq!(project.slug, "old-short");
         fs::remove_dir_all(&dir).expect("cleanup");
     }
+
+    #[test]
+    fn a_script_edit_survives_save_and_reload() {
+        let dir = temp_dir();
+        let mut project = example_project();
+        let mut draft = core::fixture_script("crash-safe saves", "Hinglish").expect("fixture");
+        let raw = draft.raw.clone();
+        core::replace_beat(
+            &mut draft,
+            core::BeatKind::Hook,
+            "The save still wins.",
+            vec!["tap the file".into()],
+        )
+        .expect("replace");
+        project.ai.topic = "crash-safe saves".to_string();
+        project.ai.language = "Hinglish".to_string();
+        core::apply_to_project(&mut project, &draft);
+        save_project(&dir, &project).expect("save");
+        let loaded = load_project(&dir).expect("load");
+        assert_eq!(loaded.ai.beats[0].text, "The save still wins.");
+        assert_eq!(loaded.ai.raw_draft, raw);
+        assert_eq!(loaded.ai.topic, "crash-safe saves");
+        fs::remove_dir_all(&dir).expect("cleanup");
+    }
 }

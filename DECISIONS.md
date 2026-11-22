@@ -132,11 +132,51 @@ Observed on 2026-11-19, not yet depended on: `screencapturekit` 1.5.2 docs show 
 
 ---
 
-### 2026-11-19 — Background removal
+### 2026-11-22 — Covers, end card, and pre-flight
 
-**Decision.** M09 starts from a simple portrait-segmentation model only if it can land inside that module. If the model download, runtime, or quality slips, ship shapes with no background removal and record the reason here.
+**Decision.** The face frame is the largest box whose mouth openness is at least 0.35. If none are open, the largest box wins. The cover PNG is 1080×1920, drawn in Skia from the measured text boxes. The end-card golden is the beat pixel at 0.0, 0.6, 1.3, and 2.0 s, because this build does not load a font into Skia. The channel pack caps a Short at 60 s. Pre-flight warnings, including a missing music-licence tick and an originality hit, never block the render.
 
-**Why.** Camera shape, safe zone, and captions are the daily path. A matting model is optional in the prompt.
+**Options.** Store PNG goldens. Use YouTube's 3-minute Shorts limit as the pack max.
+
+**Why.** A font-free pixel beat stays stable across machines. The 60 s cap is the one already on the export screen. Blocking on a warning would hide the render the check is meant to inform.
+
+**Library and version.** `skia-safe` 0.88.0 for the PNG. Policy file `policy/youtube-shorts.json`, checked on 2026-11-22.
+
+---
+
+### 2026-11-22 — Render composites with skia-safe 0.88
+
+**Decision.** The compositor is `skia-safe` 0.88.0. `skia-safe` 0.157 pulls `bindgen` 0.73, which does not compile in this workspace because `syn` 2 and `syn` 3 are both present. Motion blur is the average of 6 Skia subframes, clamped to 4–8. The encoder list prefers VideoToolbox, VAAPI, or NVENC, and falls back to `libx264` or `libx265`. The automated file is encoded with `libx264` so the probe does not depend on a hardware encoder. The button writes a few frames, not a 60 s master.
+
+**Options.** Stay on `skia-safe` 0.157 and patch `bindgen`. Composite in software only.
+
+**Why.** 0.88 builds here and draws the same rect the fixture paints. A full 60 s 4K timing belongs on the M4 the budget names. This M1 encoded 4 synthetic 2160×3840 frames in 0.615 s.
+
+**Library and version.** `skia-safe` 0.88.0. ffmpeg Lavf 63 on this Mac.
+
+---
+
+### 2026-11-22 — Voice chain uses afftdn and a treble de-esser
+
+**Decision.** Noise removal is `arnndn` when that filter is in the ffmpeg build, and `afftdn` otherwise. There is no RNNoise model in the repo. The de-esser is `treble` at 6 kHz, because the `deesser` filter is not guaranteed. The final mix is two-pass `loudnorm` at I=-14, TP=-1.0, LRA=11. This ffmpeg prints the true peak as `Peak:` under a `True peak:` heading, in dBFS.
+
+**Options.** Ship an RNNoise model and require `arnndn`. Use a dedicated de-esser filter.
+
+**Why.** The loudness, duck, and click tests have to run on the ffmpeg already installed. A missing model would make the noise stage fail closed.
+
+**Library and version.** ffmpeg on this Mac, Lavf 63.1.102. Filter graph built in `core`; the two passes run in `media`.
+
+---
+
+### 2026-11-22 — Background removal stays off
+
+**Decision.** M09 ships circle, rounded, and square camera chips with no background removal. The Edit inspector leaves the toggle disabled. A portrait model can land later without changing the layout maths.
+
+**Options.** Add an ONNX portrait segmenter and a downloaded model in this module.
+
+**Why.** The crop spring, safe-zone snap, and Hinglish line break are the tests this module has to pass. A new runtime and model download would crowd that out, which is the skip the plan allows.
+
+**Library and version.** None. The shape masks are plain raster tests in `core`.
 
 ---
 
@@ -294,7 +334,61 @@ Live tests compile and return immediately unless `LIVE_AI=1`. Listing models als
 
 **Library and version.** `screencapturekit` 1.5.4, feature `macos_15_0`. The media tests and the Tauri binary add `-rpath /usr/lib/swift` so `libswift_Concurrency.dylib` resolves from the dyld shared cache. The Command Line Tools copy is left off that rpath so both Swift runtimes are not loaded together.
 
+---
+
+### 2026-11-21 — Script drafts stay in the project
+
+**Decision.** `prompts/script.md` is version 1. Model output is JSON with five beats in order (hook, concept, demo, fix, cta), a raw string, and optional fact-check notes. The hook start must be at most 3 seconds. Duration is `words / 140 * 60` unless the caller passes another words-per-minute value. Editing a beat changes `beats` and leaves `raw` untouched. Generate in the app returns the committed fixture when no live call is made, so the screen works without a key. A mock provider test still parses fixture JSON through the same schema.
+
+**Options.** Call Claude on every Generate and fail when the key is missing. Store only the edited beats and drop the raw model text.
+
+**Why.** The originality check needs the untouched draft. The automated gate has to validate a fixture without `LIVE_AI=1`.
+
+**Library and version.** No new crate. Prompt file `prompts/script.md`. Fixture `crates/core/fixtures/script-output.json`.
+
 **Links.** <https://docs.rs/screencapturekit/1.5.4/screencapturekit/>
+
+---
+
+### 2026-11-21 — Prompter is a second window
+
+**Decision.** The teleprompter is a Tauri window labelled `prompter`: transparent, always on top, no decorations. On macOS it calls `set_content_protected(true)` so the sharing type is none. ScreenCaptureKit also excludes any window titled `Prompter` along with this process's own windows, so the exclusion is by window id and not only by the sharing flag. Scroll offset is `px_per_sec * (elapsed_ms - paused_ms) / 1000`. Voice follow uses token overlap. Confidence at or above 0.6 jumps to that line. Below that, scroll stays on the clock. Silence pauses. Linux calls `allow_linux_capture` before a take: a different monitor is allowed, a window choice is treated as a non-overlapping region because the portal path has no window geometry yet, and a full-monitor capture on the prompter's monitor is refused with the reason shown to the user. A capture region is allowed only when it does not overlap the prompter rect at (80, 80, 480×640). Magenta is detected as an RGB pixel with red and blue above 200 and green under 40. The live 3 second capture that proves the window is absent from `screen.mov` stays MANUAL, as does click-through on Omarchy and sending 2–3 second mic chunks to Whisper.
+
+**Options.** Keep the prompter inside the main window and hide it only with the sharing flag. Let a Linux monitor capture start and hope the portal can drop one window.
+
+**Why.** The portal cannot remove one window from a monitor stream, and a sharing flag alone is not the exclusion the screen recording uses. The scroll, matcher, overlap, and magenta checks can run without a display.
+
+**Library and version.** No new crate. Window APIs are Tauri 2.12.7 (`WebviewWindowBuilder`, `set_content_protected`).
+
+**Links.** <https://docs.rs/tauri/2.12.7/tauri/webview/struct.WebviewWindow.html#method.set_content_protected>
+
+---
+
+### 2026-11-21 — Linux screen capture goes through the portal
+
+**Decision.** On Linux, `screen.mov` is opened with `ashpd` 0.11.1 ScreenCast and written by GStreamer `pipewiresrc`, not by the `pipewire` crate. The portal returns a private PipeWire fd. `gst-launch-1.0` inherits that fd (`pipewiresrc fd=… path=… always-copy=true`) and encodes with `vah264enc` or `vaapih264enc` when `gst-inspect-1.0` finds one, otherwise `x264enc` at 20 Mbps. Cursor mode is metadata when the portal advertises it, then embedded, then hidden. A window id asks for a window; otherwise the dialog is a monitor, and a region becomes a `videocrop` when the stream reports a size. The session stays open until stop, then it is closed. The prompter overlap check runs only when that window exists, so a monitor capture can start while the prompter is closed. `just doctor` fails on Linux when `gst-launch-1.0` is missing. On macOS, `cursor.jsonl` reads `CGEvent` at 120 Hz and falls back to the synthetic path if that call returns nothing.
+
+**Options.** Pull frames with the `pipewire` crate and negotiate DMA-BUF in process. Keep the Linux screen path as a hard error until an Omarchy machine is on the desk.
+
+**Why.** FFmpeg's pipewire demuxer connects to the default daemon, and the portal stream is not in that daemon. GStreamer already accepts the portal fd, which is the fallback the plan allows when raw PipeWire negotiation is the risky part. The lavfi fixture remains the automated gate. A real portal dialog cannot run in the Mac test suite.
+
+**Library and version.** `ashpd` 0.11.1, default features off, feature `tokio`. `tokio` 1 with `rt`, `time`, `net`, and `sync`. `libc` 0.2 for the fd flags. System packages: `gstreamer` and `gst-plugin-pipewire`.
+
+**Links.** <https://docs.rs/ashpd/0.11.1/ashpd/desktop/screencast/struct.Screencast.html> · <https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.ScreenCast.html>
+
+---
+
+### 2026-11-21 — A take stops at 2 GB
+
+**Decision.** ScreenCaptureKit records at a 1920 long edge, 30 fps, `YCbCr_420v`, nominal resolution, and `scales_to_fit`. `SCRecordingOutputConfiguration` in screencapturekit 1.5.4 has no bitrate setter, so the 20 Mbps figure stays on the FFmpeg path and the hard stop is the take folder. A real take (no fixed duration) stops at 2 GB or when free space is under 1 GB. Pause removes the recording output; resume writes `screen.partN.mov`; stop concatenates with `ffmpeg -c copy`, or renames the single part to `screen.mov`. The 720p proxy uses `-b:v 4M` and is skipped above 1 GB.
+
+**Options.** Set a bitrate on `SCRecordingOutput` (the crate does not expose one). Keep recording the full retina frame and only watch the folder size.
+
+**Why.** A paused ScreenCaptureKit take kept writing the full display. Resolution, frame rate, and a byte ceiling bound that file even when the encoder ignores the 20 Mbps budget. Lavfi tests keep a fixed duration, so the watch does not fire on them.
+
+**Library and version.** `screencapturekit` 1.5.4, feature `macos_15_0`. `SCCaptureResolutionType::Nominal` is macOS 14+.
+
+**Links.** <https://docs.rs/screencapturekit/1.5.4/screencapturekit/stream/configuration/enum.SCCaptureResolutionType.html> · <https://docs.rs/screencapturekit/1.5.4/screencapturekit/stream/configuration/enum.PixelFormat.html>
 
 ---
 
@@ -323,3 +417,17 @@ Live tests compile and return immediately unless `LIVE_AI=1`. Listing models als
 **Library and version.** `immer` 11.2.10. No new Rust crate.
 
 **Links.** <https://immerjs.github.io/immer/>
+
+---
+
+### 2026-11-22 — Upload stays private, and a daily run is four 4K frames
+
+**Decision.** The upload kit is built in `core` from `policy/youtube-shorts.json`. The title starts with the keyword and stops at 100 characters. The description is the hook, the long-video link, and at most three hashtags, always including `#Shorts`, never `#viral` or `#fyp`. OAuth and `videos.insert` are mock functions: a code becomes `mock-{code}`, and the insert body sets `privacyStatus` to `private`. Direct upload is allowed only when the toggle is on and an OAuth client id is non-empty. The screen tells the user that an unverified Google API project stays private until Google audits it. A finished kit is remembered as a title hash and a private upload row. The daily fixture renders 4 frames at 2160×3840 with libx264, plus a cover PNG, an SRT, and `upload_kit.txt`. Cold start is not timed here.
+
+**Options.** Call Google from the test gate. Render a 60 second 4K master inside the gate.
+
+**Why.** There is no OAuth client in the repo, and an unverified project cannot publish publicly. Four frames already prove the 2160×3840 file, and a 60 second 4K encode is the M11 manual check on an M4. The planner itself is a static list, so the 2 second startup claim is the cold Tauri launch, which stays MANUAL.
+
+**Library and version.** No new crate. Google’s upload scope is `https://www.googleapis.com/auth/youtube.upload`. Loopback redirect is `http://127.0.0.1`.
+
+**Links.** <https://developers.google.com/youtube/v3/guides/auth/installed-apps> · <https://developers.google.com/youtube/v3/docs/videos/insert>

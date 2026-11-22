@@ -13,6 +13,8 @@
   grid-template-columns: 300px minmax(0, 1fr) 280px;
   gap: 12px;
   min-height: 0;
+  overflow: auto;
+  align-content: start;
 }
 
 .stack {
@@ -104,6 +106,16 @@
   height: 356px;
 }
 
+.meter {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 1;
+  width: 6px;
+  border-radius: 3px;
+  background: var(--mint);
+}
+
 .preview {
   position: absolute;
   inset: 0;
@@ -178,20 +190,22 @@
 
 .safe {
   position: absolute;
-  inset: 36px 18px;
   border: 1px dashed var(--amber);
   border-radius: 8px;
+  pointer-events: none;
 }
 
 .caption {
   position: absolute;
-  right: 24px;
-  bottom: 48px;
-  left: 24px;
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 1.25;
   text-align: center;
+}
+
+.captionLine {
+  display: block;
 }
 
 .word {
@@ -200,23 +214,24 @@
 
 .cam {
   position: absolute;
-  right: 16px;
-  bottom: 88px;
-  width: 72px;
-  height: 72px;
   border: 2px solid var(--accent);
-  border-radius: 36px;
   background: var(--select);
+}
+
+.film {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #111;
 }
 
 .crop {
   position: absolute;
-  top: 80px;
-  right: 48px;
-  left: 48px;
-  height: 180px;
   border: 1px solid var(--blue);
   border-radius: 8px;
+  pointer-events: none;
 }
 
 .grid {
@@ -308,8 +323,19 @@
 }
 
 .voice {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
   width: 70%;
+  overflow: hidden;
   background: var(--mint);
+}
+
+.peak {
+  display: block;
+  width: 3px;
+  background: var(--text);
+  opacity: 0.35;
 }
 
 .music {
@@ -353,8 +379,22 @@
 }
 
 .struck {
+  margin-right: 6px;
+  padding: 0;
   color: var(--text-dim);
+  font: inherit;
   text-decoration: line-through;
+  background: transparent;
+  border: 0;
+}
+
+.wordButton {
+  margin-right: 6px;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  border: 0;
 }
 
 .mixer {
@@ -448,10 +488,23 @@
   color: var(--text-mid);
 }
 
-.pass {
-  color: var(--mint);
+.pass,
+.warn,
+.fail {
   font-family: var(--font-mono);
   font-size: 12px;
+}
+
+.pass {
+  color: var(--mint);
+}
+
+.warn {
+  color: var(--amber);
+}
+
+.fail {
+  color: var(--red);
 }
 
 .queue {

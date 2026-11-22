@@ -11,11 +11,11 @@ pub struct DiskEstimate {
     pub minutes_remaining: f64,
 }
 
-/// Rough budget for screen (high bitrate) + cam + mic WAV.
-pub const BYTES_PER_MINUTE: u64 = 180_000_000;
+/// Screen 20 Mbps + camera 8 Mbps + 48 kHz mono 16-bit PCM.
+pub const BYTES_PER_MINUTE: u64 = 20_000_000 / 8 * 60 + 8_000_000 / 8 * 60 + 48_000 * 2 * 60;
 
 pub fn estimate(path: &Path) -> Result<DiskEstimate, String> {
-    let free_bytes = free_space(path)?;
+    let free_bytes = free_bytes(path)?;
     let minutes_remaining = free_bytes as f64 / BYTES_PER_MINUTE as f64;
     Ok(DiskEstimate {
         free_bytes,
@@ -24,7 +24,7 @@ pub fn estimate(path: &Path) -> Result<DiskEstimate, String> {
     })
 }
 
-fn free_space(path: &Path) -> Result<u64, String> {
+pub(crate) fn free_bytes(path: &Path) -> Result<u64, String> {
     let probe = if path.exists() {
         path.to_path_buf()
     } else if let Some(parent) = path
@@ -60,6 +60,27 @@ fn free_space(path: &Path) -> Result<u64, String> {
         .parse::<u64>()
         .map_err(|error| format!("df available parse failed: {error}"))?;
     Ok(available_kib.saturating_mul(1024))
+}
+
+pub(crate) fn directory_bytes(path: &Path) -> u64 {
+    fn walk(path: &Path, total: &mut u64) {
+        let Ok(entries) = std::fs::read_dir(path) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let Ok(meta) = entry.metadata() else {
+                continue;
+            };
+            if meta.is_dir() {
+                walk(&entry.path(), total);
+            } else {
+                *total = total.saturating_add(meta.len());
+            }
+        }
+    }
+    let mut total = 0;
+    walk(path, &mut total);
+    total
 }
 
 #[cfg(test)]

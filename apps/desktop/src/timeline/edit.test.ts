@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  clampSpeed,
   historyOf,
+  nextTransition,
+  proxyFileName,
   pushHistory,
   redoHistory,
   rippleDelete,
+  setSpeed,
+  snapTime,
   splitSpan,
+  trimSpan,
   undoHistory,
+  waveformPeaks,
   type Span,
 } from "./edit";
 
@@ -28,5 +35,17 @@ describe("timeline edits", () => {
     expect(history.present).toHaveLength(2);
     history = redoHistory(history);
     expect(history.present).toHaveLength(1);
+  });
+
+  it("trims, snaps, clamps speed, and names the 720p proxy", () => {
+    const trimmed = trimSpan([screen], "screen", 4_000);
+    expect(trimmed[0]?.durationMs).toBe(4_000);
+    expect(snapTime(980, [0, 1_000], 40)).toBe(1_000);
+    expect(clampSpeed(9)).toBe(4);
+    expect(clampSpeed(0.1)).toBe(0.25);
+    expect(setSpeed([screen], "screen", 2)[0]?.speed).toBe(2);
+    expect(waveformPeaks([0.2, -0.9, 0.4], 2)).toEqual([0.9, 0.4]);
+    expect(proxyFileName("screen.mov")).toBe("screen.720p.mp4");
+    expect(nextTransition("glitch")).toBe("cut");
   });
 });

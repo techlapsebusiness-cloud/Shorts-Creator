@@ -74,6 +74,8 @@ const track = z
   .object({
     id: trackId,
     clips: z.array(clip),
+    muted: z.boolean().default(false),
+    solo: z.boolean().default(false),
   })
   .strict();
 
@@ -100,6 +102,8 @@ export const projectSchema: z.ZodType<Project> = z
         camShape,
         safeZone: z.boolean(),
         accent: z.string(),
+        transition: z.string().default("cut"),
+        markersSecs: z.array(z.number()).default([]),
       })
       .strict(),
     audioChain: z

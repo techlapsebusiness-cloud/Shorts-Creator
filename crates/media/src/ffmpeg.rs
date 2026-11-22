@@ -107,6 +107,37 @@ pub fn encoder_or_fallback(preferred: &str) -> String {
     }
 }
 
+const PROXY_SKIP_ABOVE: u64 = 1_000_000_000;
+
+pub fn encode_proxy(source: &Path, dest: &Path) -> Result<(), FfmpegError> {
+    if std::fs::metadata(source)
+        .map(|meta| meta.len())
+        .unwrap_or(0)
+        > PROXY_SKIP_ABOVE
+    {
+        return Ok(());
+    }
+    let mut command = ffmpeg();
+    command.arg("-i").arg(source).args([
+        "-vf",
+        "scale=1280:720",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-b:v",
+        "4M",
+        "-pix_fmt",
+        "yuv420p",
+        "-an",
+        "-movflags",
+        "+faststart",
+    ]);
+    command.arg(dest);
+    run_checked(command)?;
+    Ok(())
+}
+
 fn command_name(command: &Command) -> String {
     command.get_program().to_string_lossy().into_owned()
 }

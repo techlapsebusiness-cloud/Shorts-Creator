@@ -1,4 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { Project } from "../bindings/Project";
+import { DailyCard } from "../daily/DailyCard";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -31,10 +33,23 @@ type DeviceList = {
   microphones: CaptureDevice[];
   backend: string;
 };
+type CaptureWindow = { id: number; title: string };
+type CaptureRegion = { x: number; y: number; width: number; height: number };
 type DiskEstimate = {
   freeBytes: number;
   bytesPerMinute: number;
   minutesRemaining: number;
+};
+type ScriptBeat = {
+  kind: string;
+  start: number;
+  text: string;
+  cues: string[];
+};
+type ScriptDraft = {
+  raw: string;
+  factCheck: string[];
+  beats: ScriptBeat[];
 };
 type TakeResult = {
   screen: string | null;
@@ -49,11 +64,34 @@ type TakeResult = {
   };
 };
 
+const ALTERNATES = [
+  "Wait — this file survives a crash.",
+  "The project file is the edit.",
+  "Watch the temp file land beside the save.",
+  "The rename replaces the last good file.",
+  "Make the next short.",
+];
+
 const LAYOUTS: { id: LayoutId; label: string }[] = [
   { id: "screenCam", label: "Screen + cam" },
   { id: "camOnly", label: "Cam only" },
   { id: "screenOnly", label: "Screen only" },
 ];
+
+type TakeSummary = {
+  id: string;
+  dir: string;
+  createdMs: number;
+  durationSecs: number;
+  screen: boolean;
+  cam: boolean;
+  mic: boolean;
+};
+
+type OpenedTake = {
+  project: Project;
+  dir: string;
+};
 
 type RecordScreenProps = {
   actionToken?: number;
@@ -61,12 +99,14 @@ type RecordScreenProps = {
   countdownSecs?: number;
   /** Test override for lavfi auto-stop hold. */
   lavfiHoldMs?: number;
+  onOpened?: (opened: OpenedTake) => void;
 };
 
 export function RecordScreen({
   actionToken = 0,
   countdownSecs = 3,
   lavfiHoldMs = 3400,
+  onOpened,
 }: RecordScreenProps) {
   const [model, setModel] = useState<"Claude" | "ChatGPT">("Claude");
   const [topic, setTopic] = useState("crash-safe saves");
@@ -74,6 +114,7 @@ export function RecordScreen({
   const [length, setLength] = useState("30 s");
   const [chips, setChips] = useState<string[]>(["Hook in 3 s", "CTA"]);
   const [beats, setBeats] = useState<string[]>(BEATS.map((beat) => beat[2]));
+  const [draft, setDraft] = useState<ScriptDraft | null>(null);
   const [followsVoice, setFollowsVoice] = useState(true);
   const [mirror, setMirror] = useState(false);
   const [underWebcam, setUnderWebcam] = useState(true);
@@ -84,14 +125,23 @@ export function RecordScreen({
   const [camId, setCamId] = useState("");
   const [micId, setMicId] = useState("");
   const [backend, setBackend] = useState("lavfi");
+  const [windows, setWindows] = useState<CaptureWindow[]>([]);
+  const [windowId, setWindowId] = useState<number | null>(null);
+  const [regionText, setRegionText] = useState("");
+  const [iconSupport, setIconSupport] = useState(false);
+  const [iconsHidden, setIconsHidden] = useState(false);
+  const [micLevel, setMicLevel] = useState(0);
   const [disk, setDisk] = useState<DiskEstimate | null>(null);
+  const [takeBytes, setTakeBytes] = useState<number | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [countdown, setCountdown] = useState(0);
   const [status, setStatus] = useState("Ready");
   const [lastTake, setLastTake] = useState<TakeResult | null>(null);
+  const [takes, setTakes] = useState<TakeSummary[]>([]);
   const [error, setError] = useState("");
   const [camError, setCamError] = useState("");
   const previewRef = useRef<HTMLVideoElement>(null);
+  const finishRef = useRef<() => Promise<void>>(async () => undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,6 +190,27 @@ export function RecordScreen({
         }
       })
       .catch(() => undefined);
+    invoke<CaptureWindow[]>("list_capture_windows")
+      .then((list) => {
+        if (!cancelled) {
+          setWindows(list);
+        }
+      })
+      .catch(() => undefined);
+    invoke<TakeSummary[]>("list_takes")
+      .then((list) => {
+        if (!cancelled) {
+          setTakes(list);
+        }
+      })
+      .catch(() => undefined);
+    invoke<{ supported: boolean }>("desktop_icon_support")
+      .then((value) => {
+        if (!cancelled) {
+          setIconSupport(value.supported);
+        }
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -178,10 +249,175 @@ export function RecordScreen({
   }, []);
 
   useEffect(() => {
+    if (phase !== "recording") {
+      return;
+    }
+    function onPointer(event: PointerEvent) {
+      void invoke("log_overlay_event", {
+        kind: "click",
+        label: String(event.button),
+      }).catch(() => undefined);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+      void invoke("log_overlay_event", { kind: "key", label: event.key }).catch(
+        () => undefined,
+      );
+    }
+    window.addEventListener("pointerdown", onPointer);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "recording" || !("__TAURI_INTERNALS__" in window)) {
+      return;
+    }
+    let stream: MediaStream | null = null;
+    let context: AudioContext | null = null;
+    let frame = 0;
+    let alive = true;
+    navigator.mediaDevices
+      ?.getUserMedia({ audio: true, video: false })
+      .then((next) => {
+        if (!alive || next.getAudioTracks().length === 0) {
+          next.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        stream = next;
+        context = new AudioContext();
+        const source = context.createMediaStreamSource(next);
+        const analyser = context.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        const data = new Uint8Array(analyser.fftSize);
+        const tick = () => {
+          analyser.getByteTimeDomainData(data);
+          let sum = 0;
+          for (const value of data) {
+            const sample = (value - 128) / 128;
+            sum += sample * sample;
+          }
+          setMicLevel(Math.min(1, Math.sqrt(sum / data.length) * 4));
+          frame = window.requestAnimationFrame(tick);
+        };
+        tick();
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+      window.cancelAnimationFrame(frame);
+      stream?.getTracks().forEach((track) => track.stop());
+      void context?.close();
+    };
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "recording" && phase !== "paused") {
+      setTakeBytes(null);
+      return;
+    }
+    let cancel = false;
+    const poll = async () => {
+      while (!cancel) {
+        const status = await invoke<{
+          bytes: number;
+          message: string | null;
+        }>("recording_status").catch(() => null);
+        if (cancel) {
+          return;
+        }
+        if (status) {
+          setTakeBytes(status.bytes);
+          if (status.message) {
+            await finishRef.current();
+            return;
+          }
+        }
+        await wait(1000);
+        if (cancel) {
+          return;
+        }
+      }
+    };
+    void poll();
+    return () => {
+      cancel = true;
+    };
+  }, [phase]);
+
+  useEffect(() => {
     if (actionToken > 0) {
       void beginRecording();
     }
   }, [actionToken]);
+
+  async function generateScript() {
+    setError("");
+    try {
+      const view = await invoke<{ draft: ScriptDraft }>("generate_script", {
+        topic,
+        language,
+        lengthSecs: lengthSeconds(length),
+        wpm: 140,
+      });
+      setDraft(view.draft);
+      setBeats(view.draft.beats.map((beat) => beat.text));
+      await persistScript(
+        view.draft,
+        view.draft.beats.map((beat) => beat.text),
+      );
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  async function regenerateLine(index: number) {
+    const current = draft ?? draftFromBeats(beats, topic, language);
+    const kind = BEATS[index]?.[0].toLowerCase() ?? "hook";
+    try {
+      const view = await invoke<{ draft: ScriptDraft }>("regenerate_beat", {
+        draft: {
+          ...current,
+          beats: current.beats.map((beat, beatIndex) =>
+            beatIndex === index
+              ? { ...beat, text: beats[beatIndex] ?? beat.text }
+              : beat,
+          ),
+        },
+        kind,
+        text: ALTERNATES[index] ?? beats[index],
+        cues: current.beats[index]?.cues ?? [],
+        wpm: 140,
+      });
+      setDraft(view.draft);
+      setBeats(view.draft.beats.map((beat) => beat.text));
+      await persistScript(
+        view.draft,
+        view.draft.beats.map((beat) => beat.text),
+      );
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  async function persistScript(next: ScriptDraft, lines: string[]) {
+    const saved = {
+      ...next,
+      beats: next.beats.map((beat, index) => ({
+        ...beat,
+        text: lines[index] ?? beat.text,
+      })),
+    };
+    await invoke("save_script", { topic, language, draft: saved }).catch(
+      () => undefined,
+    );
+  }
 
   async function beginRecording() {
     if (phase !== "idle") {
@@ -190,6 +426,9 @@ export function RecordScreen({
     setError("");
     setLastTake(null);
     setPhase("countdown");
+    void invoke("prompter_set_running", { running: true }).catch(
+      () => undefined,
+    );
     for (let value = countdownSecs; value >= 1; value -= 1) {
       setCountdown(value);
       setStatus(`Countdown ${value}`);
@@ -208,6 +447,8 @@ export function RecordScreen({
           micId: micId || null,
           countdownSecs: 0,
           fixedDurationSecs: backend === "lavfi" ? 3 : null,
+          windowId,
+          region: parseRegion(regionText),
         },
       });
       setPhase("recording");
@@ -219,6 +460,9 @@ export function RecordScreen({
         await finishRecording();
       }
     } catch (err) {
+      void invoke("prompter_set_running", { running: false }).catch(
+        () => undefined,
+      );
       setPhase("idle");
       setStatus("Ready");
       setError(String(err));
@@ -228,24 +472,40 @@ export function RecordScreen({
   async function finishRecording() {
     try {
       const take = await invoke<TakeResult>("stop_recording");
+      void invoke("prompter_set_running", { running: false }).catch(
+        () => undefined,
+      );
       setLastTake(take);
       setPhase("idle");
       setStatus(take.outDir ? `Take saved · ${take.outDir}` : "Take saved");
+      const listed = await invoke<TakeSummary[]>("list_takes").catch(() => []);
+      setTakes(listed);
     } catch (err) {
+      void invoke("prompter_set_running", { running: false }).catch(
+        () => undefined,
+      );
       setPhase("idle");
       setStatus("Ready");
       setError(String(err));
     }
   }
 
+  finishRef.current = finishRecording;
+
   async function togglePause() {
     try {
       if (phase === "recording") {
         await invoke("pause_recording");
+        void invoke("prompter_set_running", { running: false }).catch(
+          () => undefined,
+        );
         setPhase("paused");
         setStatus("Paused");
       } else if (phase === "paused") {
         await invoke("resume_recording");
+        void invoke("prompter_set_running", { running: true }).catch(
+          () => undefined,
+        );
         setPhase("recording");
         setStatus("Recording…");
       }
@@ -259,6 +519,7 @@ export function RecordScreen({
 
   return (
     <div className={`${styles.page} ${styles.columns}`}>
+      <DailyCard />
       <Card title="Script">
         <div className={styles.row}>
           <Pill
@@ -304,7 +565,13 @@ export function RecordScreen({
             </Pill>
           ))}
         </div>
-        <Button tone="primary">Generate</Button>
+        <Button tone="primary" onClick={() => void generateScript()}>
+          Generate
+        </Button>
+        <p className={styles.meta} data-testid="script-estimate">
+          {scriptWords(beats)} words · {scriptSeconds(beats).toFixed(1)} s at
+          140 wpm
+        </p>
         {BEATS.map((beat, index) => (
           <label key={beat[0]} className={styles.beat}>
             <span className={styles.kind}>{beat[0]}</span>
@@ -320,7 +587,19 @@ export function RecordScreen({
                   ),
                 )
               }
+              onBlur={() => {
+                if (draft) {
+                  void persistScript(draft, beats);
+                }
+              }}
             />
+            <button
+              type="button"
+              className={styles.tool}
+              onClick={() => void regenerateLine(index)}
+            >
+              Regenerate
+            </button>
           </label>
         ))}
       </Card>
@@ -333,6 +612,15 @@ export function RecordScreen({
                 <span className={styles.dot} />
                 PROMPTER · NOT RECORDED
               </p>
+              <button
+                type="button"
+                className={styles.tool}
+                onClick={() => {
+                  void invoke("open_prompter").catch(() => undefined);
+                }}
+              >
+                Open prompter
+              </button>
               <p className={styles.promptLine}>{beats[0]}</p>
             </div>
           </div>
@@ -347,6 +635,13 @@ export function RecordScreen({
                 muted
                 playsInline
               />
+              {micLevel > 0.02 ? (
+                <span
+                  className={styles.meter}
+                  style={{ height: `${Math.round(micLevel * 100)}%` }}
+                  aria-label="Microphone level"
+                />
+              ) : null}
               <p className={styles.banner}>
                 {countdown > 0 ? countdown : "9:16"}
               </p>
@@ -356,6 +651,51 @@ export function RecordScreen({
             </div>
           </div>
         </div>
+        <SelectField
+          label="Backend"
+          value={backend}
+          options={
+            devices?.backend === "avfoundation"
+              ? ["lavfi", "avfoundation"]
+              : ["lavfi", "linux"]
+          }
+          onChange={setBackend}
+        />
+        <SelectField
+          label="Screen"
+          value={deviceLabel(
+            devices?.screens ?? [],
+            screenId,
+            "No screen found",
+          )}
+          options={deviceLabels(devices?.screens ?? [], "No screen found")}
+          onChange={(value) =>
+            setScreenId(deviceIdFromLabel(devices?.screens ?? [], value))
+          }
+        />
+        <SelectField
+          label="Camera"
+          value={deviceLabel(devices?.cameras ?? [], camId, "No camera found")}
+          options={deviceLabels(devices?.cameras ?? [], "No camera found")}
+          onChange={(value) =>
+            setCamId(deviceIdFromLabel(devices?.cameras ?? [], value))
+          }
+        />
+        <SelectField
+          label="Microphone"
+          value={deviceLabel(
+            devices?.microphones ?? [],
+            micId,
+            "No microphone found",
+          )}
+          options={deviceLabels(
+            devices?.microphones ?? [],
+            "No microphone found",
+          )}
+          onChange={(value) =>
+            setMicId(deviceIdFromLabel(devices?.microphones ?? [], value))
+          }
+        />
         <div className={styles.row}>
           {LAYOUTS.map((item) => (
             <Pill
@@ -403,8 +743,34 @@ export function RecordScreen({
           <p className={styles.meta}>
             Disk ~{Math.floor(disk.minutesRemaining)} min at{" "}
             {Math.round(disk.bytesPerMinute / 1_000_000)} MB/min
+            {takeBytes !== null ? ` · this take ${formatBytes(takeBytes)}` : ""}
           </p>
         ) : null}
+        <Card title="Recordings">
+          {takes.length === 0 ? (
+            <p className={styles.meta}>No recordings yet.</p>
+          ) : (
+            takes.map((take) => (
+              <div key={take.id} className={styles.row}>
+                <p className={styles.meta}>
+                  {take.id} · {take.durationSecs.toFixed(1)}s
+                  {take.screen ? " · screen" : ""}
+                  {take.cam ? " · cam" : ""}
+                  {take.mic ? " · mic" : ""}
+                </p>
+                <Button
+                  onClick={() => {
+                    void invoke<OpenedTake>("open_take", { takeDir: take.dir })
+                      .then((opened) => onOpened?.(opened))
+                      .catch((err: unknown) => setError(String(err)));
+                  }}
+                >
+                  Open in editor
+                </Button>
+              </div>
+            ))
+          )}
+        </Card>
       </div>
       <Card title="Prompter">
         <div className={styles.row}>
@@ -425,49 +791,93 @@ export function RecordScreen({
         />
         <Toggle label="Show screen cues" checked={cues} onChange={setCues} />
         <Toggle label="Hide from recording" checked disabled />
-        <SelectField
-          label="Backend"
-          value={backend}
-          options={
-            devices?.backend === "avfoundation"
-              ? ["lavfi", "avfoundation"]
-              : ["lavfi", "linux"]
-          }
-          onChange={setBackend}
-        />
-        <SelectField
-          label="Screen"
-          value={deviceOption(devices?.screens ?? [], screenId)}
-          options={
-            devices?.screens.length
-              ? devices.screens.map(deviceOptionLabel)
-              : ["lavfi"]
-          }
-          onChange={(value) => setScreenId(deviceId(value))}
-        />
-        <SelectField
-          label="Camera"
-          value={deviceOption(devices?.cameras ?? [], camId)}
-          options={
-            devices?.cameras.length
-              ? devices.cameras.map(deviceOptionLabel)
-              : ["lavfi"]
-          }
-          onChange={(value) => setCamId(deviceId(value))}
-        />
-        <SelectField
-          label="Microphone"
-          value={deviceOption(devices?.microphones ?? [], micId)}
-          options={
-            devices?.microphones.length
-              ? devices.microphones.map(deviceOptionLabel)
-              : ["lavfi"]
-          }
-          onChange={(value) => setMicId(deviceId(value))}
-        />
+        {iconSupport ? (
+          <Toggle
+            label="Hide desktop icons"
+            checked={iconsHidden}
+            onChange={(checked) => {
+              setIconsHidden(checked);
+              void invoke("set_desktop_icons", { visible: !checked }).catch(
+                (err: unknown) => setError(String(err)),
+              );
+            }}
+          />
+        ) : null}
+        {iconSupport ? (
+          <Field
+            label="Region x, y, width, height"
+            value={regionText}
+            onChange={setRegionText}
+          />
+        ) : null}
+        {(windows?.length ?? 0) > 0 ? (
+          <SelectField
+            label="Window"
+            value={windowId === null ? "display" : String(windowId)}
+            options={[
+              "display",
+              ...windows.map((item) => `${item.id} · ${item.title}`),
+            ]}
+            onChange={(value) => {
+              if (value === "display") {
+                setWindowId(null);
+                return;
+              }
+              const id = Number(value.split(" · ")[0]);
+              setWindowId(Number.isFinite(id) ? id : null);
+            }}
+          />
+        ) : null}
       </Card>
     </div>
   );
+}
+
+function scriptWords(lines: string[]) {
+  return lines
+    .join(" ")
+    .split(/\s+/)
+    .filter((word) => word.length > 0).length;
+}
+
+function scriptSeconds(lines: string[]) {
+  return (scriptWords(lines) / 140) * 60;
+}
+
+function lengthSeconds(value: string) {
+  const parsed = Number(value.replace(/[^0-9]/g, ""));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 30;
+}
+
+function draftFromBeats(
+  lines: string[],
+  topic: string,
+  language: string,
+): ScriptDraft {
+  return {
+    raw: `${language} draft about ${topic}. ${lines.join(" ")}`,
+    factCheck: [],
+    beats: BEATS.map((beat, index) => ({
+      kind: beat[0].toLowerCase(),
+      start: index === 0 ? 0 : index * 5,
+      text: lines[index] ?? "",
+      cues: [],
+    })),
+  };
+}
+
+function parseRegion(value: string): CaptureRegion | null {
+  const parts = value.split(",").map((part) => Number(part.trim()));
+  if (
+    parts.length !== 4 ||
+    parts.some((part) => !Number.isFinite(part) || part < 0)
+  ) {
+    return null;
+  }
+  if (parts[2] === 0 || parts[3] === 0) {
+    return null;
+  }
+  return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
 }
 
 function pickDevice(
@@ -477,21 +887,35 @@ function pickDevice(
   return (devices.find(prefer) ?? devices[0])?.id ?? "";
 }
 
-function deviceOptionLabel(device: CaptureDevice) {
-  return `${device.id} · ${device.label}`;
+function deviceLabels(devices: CaptureDevice[], empty: string) {
+  if (devices.length === 0) {
+    return [empty];
+  }
+  return devices.map((device) => device.label || device.id);
 }
 
-function deviceOption(devices: CaptureDevice[], id: string) {
-  const device = devices.find((item) => item.id === id);
-  return device ? deviceOptionLabel(device) : id || "lavfi";
+function deviceLabel(devices: CaptureDevice[], id: string, empty: string) {
+  return devices.find((device) => device.id === id)?.label || empty;
 }
 
-function deviceId(value: string) {
-  return value.split(" · ")[0] ?? value;
+function deviceIdFromLabel(devices: CaptureDevice[], label: string) {
+  return (
+    devices.find((device) => (device.label || device.id) === label)?.id ?? ""
+  );
 }
 
 function wait(ms: number) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
+}
+
+function formatBytes(bytes: number) {
+  if (bytes >= 1_000_000_000) {
+    return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
+  }
+  if (bytes >= 1_000_000) {
+    return `${Math.round(bytes / 1_000_000)} MB`;
+  }
+  return `${Math.round(bytes / 1_000)} KB`;
 }

@@ -252,6 +252,27 @@ impl Library {
             .map_err(StoreError::from)
     }
 
+    pub fn remember_kit(
+        &mut self,
+        project_id: &str,
+        title: &str,
+        created_at: &str,
+    ) -> Result<(), StoreError> {
+        self.record_hash(&HashRow {
+            project_id: project_id.to_string(),
+            kind: "title".to_string(),
+            value: title.to_string(),
+            created_at: created_at.to_string(),
+        })?;
+        self.record_upload(&UploadRow {
+            id: format!("up-{project_id}"),
+            project_id: project_id.to_string(),
+            video_id: None,
+            published_at: Some(created_at.to_string()),
+            visibility: "private".to_string(),
+        })
+    }
+
     pub fn record_hash(&mut self, row: &HashRow) -> Result<(), StoreError> {
         self.conn.execute(
             "INSERT INTO originality_hashes (project_id, kind, value, created_at)
@@ -373,5 +394,17 @@ mod tests {
             .expect("hash");
         assert_eq!(library.hashes_for("p1").expect("hashes")[0].value, "abc");
         assert!(library.hashes_for("missing").expect("empty").is_empty());
+    }
+
+    #[test]
+    fn a_kit_is_remembered_for_originality() {
+        let mut library = Library::open_in_memory().expect("open");
+        library
+            .remember_kit("p9", "rename: the file survives", "2026-11-22T00:00:00Z")
+            .expect("remember");
+        assert_eq!(library.hashes_for("p9").expect("hashes")[0].kind, "title");
+        let upload = library.list_uploads().expect("uploads").remove(0);
+        assert_eq!(upload.visibility, "private");
+        assert_eq!(upload.video_id, None);
     }
 }
